@@ -1,5 +1,7 @@
 // TravelTech Tourist Safety & Emergency Controller
 
+const FALL_IMPACT_THRESHOLD = 28;
+
 class SafetyManager {
     constructor() {
         this.currentCoords = null;
@@ -597,7 +599,7 @@ class SafetyManager {
 
         if (magnitude < 4.5) {
             this.lastFreefallAt = now;
-        } else if (magnitude > 35 && this.lastFreefallAt !== null && now - this.lastFreefallAt <= 1200) {
+        } else if (magnitude > FALL_IMPACT_THRESHOLD && this.lastFreefallAt !== null && now - this.lastFreefallAt <= 1200) {
             this.lastFreefallAt = null;
             if (this.lastFallDetectedAt !== null && now - this.lastFallDetectedAt < 30000) return;
             this.lastFallDetectedAt = now;

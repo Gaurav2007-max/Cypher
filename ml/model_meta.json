@@ -1,0 +1,204 @@
+{
+  "features": [
+    "dest_category",
+    "dest_base_popularity",
+    "hour_of_day",
+    "day_of_week",
+    "day_of_year",
+    "month",
+    "is_weekend",
+    "is_holiday",
+    "is_festival_season",
+    "weather_code",
+    "temperature_c",
+    "humidity_pct",
+    "rainfall_mm",
+    "city_traffic_index"
+  ],
+  "classes": [
+    "None",
+    "Low",
+    "Moderate",
+    "High",
+    "Overcrowded"
+  ],
+  "weather_codes": [
+    "sunny",
+    "partly_cloudy",
+    "cloudy",
+    "rain",
+    "heavy_rain",
+    "fog",
+    "haze",
+    "cold_clear",
+    "hot",
+    "humid_hot"
+  ],
+  "accuracy": 0.7088,
+  "cv_accuracy": 0.5917,
+  "dest_meta": {
+    "Surajkund Ancient Amphitheater & Reservoir": {
+      "category": 0,
+      "base_popularity": 0.85,
+      "peak_months": [
+        2,
+        10,
+        11,
+        12
+      ]
+    },
+    "Raja Nahar Singh Palace (Ballabhgarh Fort)": {
+      "category": 0,
+      "base_popularity": 0.7,
+      "peak_months": [
+        10,
+        11,
+        12,
+        1
+      ]
+    },
+    "Badkhal Lake & Eco Biodiversity Ridge": {
+      "category": 1,
+      "base_popularity": 0.65,
+      "peak_months": [
+        10,
+        11,
+        12,
+        1
+      ]
+    },
+    "Asola Bhatti Sanctuary \u2014 Peacock Hidden Lake": {
+      "category": 1,
+      "base_popularity": 0.55,
+      "peak_months": [
+        10,
+        11,
+        1,
+        2
+      ]
+    },
+    "Sri Sri Radha Govind Temple (ISKCON Faridabad)": {
+      "category": 2,
+      "base_popularity": 0.8,
+      "peak_months": [
+        1,
+        2,
+        7,
+        8,
+        9,
+        10
+      ]
+    },
+    "Taj Mahal & Yamuna Riverfront": {
+      "category": 3,
+      "base_popularity": 0.99,
+      "peak_months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ]
+    },
+    "Mehtab Bagh (Moonlight Garden)": {
+      "category": 0,
+      "base_popularity": 0.6,
+      "peak_months": [
+        10,
+        11,
+        12,
+        1,
+        2
+      ]
+    },
+    "The Ridge & Christ Church": {
+      "category": 0,
+      "base_popularity": 0.75,
+      "peak_months": [
+        5,
+        6,
+        7,
+        8
+      ]
+    },
+    "Potters Hill Cedar Eco Forest": {
+      "category": 1,
+      "base_popularity": 0.5,
+      "peak_months": [
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    "Hawa Mahal (Palace of Winds)": {
+      "category": 3,
+      "base_popularity": 0.92,
+      "peak_months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ]
+    },
+    "Panna Meena ka Kund (Hidden Stepwell)": {
+      "category": 0,
+      "base_popularity": 0.6,
+      "peak_months": [
+        10,
+        11,
+        12,
+        1,
+        2
+      ]
+    },
+    "Dashashwamedh Ghat & Ganga Aarti": {
+      "category": 2,
+      "base_popularity": 0.95,
+      "peak_months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ]
+    },
+    "Sarnath Deer Park & Dhamek Stupa": {
+      "category": 2,
+      "base_popularity": 0.8,
+      "peak_months": [
+        10,
+        11,
+        12,
+        1,
+        2
+      ]
+    }
+  },
+  "trained_at": "2026-10-29T07:11:40.718771Z",
+  "model_type": "RandomForestClassifier",
+  "n_estimators": 200,
+  "note": "Trained on synthetically generated tourist-crowd dataset modeled after Indian tourism patterns."
+}

@@ -298,6 +298,7 @@
                             <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="window.travelMap.requestDirections({{ dest.latitude }}, {{ dest.longitude }}, '{{ dest.name|replace("'", "\\'") }}')">
                                 <i class="bi bi-compass me-1"></i>Navigate
                             </button>
+                            <button class="btn btn-sm btn-outline-info rounded-pill px-3" onclick="openCrowdForecastModal({{ dest.id }}, '{{ dest.name|replace("'", "\\'") }}')"> <i class="bi bi-graph-up me-1"></i>Crowd Forecast</button>
                         </div>
                     </div>
                 </div>
