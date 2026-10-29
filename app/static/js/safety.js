@@ -37,6 +37,15 @@ class SafetyManager {
                 this.stopSafetyMonitoring(false);
             } else if (event.key === 'traveltech-safety-monitoring' && event.newValue === 'false') {
                 this.stopSafetyMonitoring(false);
+            } else if (event.key === 'traveltech-safety-monitoring' && event.newValue === 'true') {
+                this.resumeSafetyMonitoring();
+            }
+        });
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && this.isSafetyMonitoringEnabled() &&
+                this.hasMotionConsent() && this.hasLocationConsent() &&
+                !this.motionListening) {
+                this.resumeSafetyMonitoring();
             }
         });
         if (document.getElementById('checkinCountdownDisplay')) {
@@ -50,10 +59,11 @@ class SafetyManager {
 
     isSafetyMonitoringEnabled() {
         try {
-            return localStorage.getItem('traveltech-safety-monitoring') === 'true';
+            return localStorage.getItem('traveltech-safety-monitoring') !== 'false' &&
+                this.hasMotionConsent() && this.hasLocationConsent();
         } catch (error) {
             console.error('Could not read the safety monitoring preference:', error);
-            return false;
+            return this.hasMotionConsent() && this.hasLocationConsent();
         }
     }
 
@@ -78,10 +88,11 @@ class SafetyManager {
             return;
         }
 
-        if (typeof window.DeviceMotionEvent?.requestPermission === 'function') {
+        if (typeof window.DeviceMotionEvent?.requestPermission === 'function' &&
+            !this.hasGrantedMotionPermission()) {
             const status = document.getElementById('motionSensorStatus');
             const button = document.getElementById('enableMotionDetection');
-            if (status) status.textContent = 'Your monitoring preference is saved. Tap to resume motion sensing in this browser session.';
+            if (status) status.textContent = 'Automatic monitoring is enabled. Grant motion access once in this browser to start sensing.';
             if (button) {
                 button.hidden = false;
                 button.disabled = false;
@@ -135,8 +146,17 @@ class SafetyManager {
             return;
         }
 
-        status.textContent = 'Safety monitoring is active while this browser allows sensors and location access.';
+        status.textContent = 'Automatic safety monitoring is active while this browser allows sensors and location access.';
         this.updateMonitoringControls(true);
+    }
+
+    hasGrantedMotionPermission() {
+        try {
+            return localStorage.getItem('traveltech-motion-permission') === 'granted';
+        } catch (error) {
+            console.error('Could not read the motion permission state:', error);
+            return false;
+        }
     }
 
     stopSafetyMonitoring(clearPreference = true) {
@@ -548,12 +568,18 @@ class SafetyManager {
 
         try {
             const motionEvent = window.DeviceMotionEvent;
-            if (typeof motionEvent.requestPermission === 'function') {
+            if (typeof motionEvent.requestPermission === 'function' &&
+                !this.hasGrantedMotionPermission()) {
                 const permission = await motionEvent.requestPermission();
                 if (permission !== 'granted') {
                     const status = document.getElementById('motionSensorStatus');
                     if (status) status.textContent = 'Motion sensor permission was not granted. Allow it in your browser settings to use fall alerts.';
                     return false;
+                }
+                try {
+                    localStorage.setItem('traveltech-motion-permission', 'granted');
+                } catch (error) {
+                    console.error('Could not save the motion permission state:', error);
                 }
             }
 
@@ -572,7 +598,7 @@ class SafetyManager {
         window.addEventListener('devicemotion', this.handleMotionEvent);
         this.motionListening = true;
         const status = document.getElementById('motionSensorStatus');
-        if (status) status.textContent = 'Motion permission is active. Fall alerts require a free-fall followed by a strong impact.';
+        if (status) status.textContent = 'Automatic monitoring is active. Fall alerts require a free-fall followed by a strong impact.';
     }
 
     stopMotionSensor() {

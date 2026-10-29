@@ -13,7 +13,7 @@
                 <div class="card border-0 shadow-lg rounded-5 overflow-hidden" style="background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(16px);">
                     
                     <div class="p-4 pt-5 text-center">
-                        <div class="d-inline-flex align-items-center justify-content-center bg-danger-subtle text-danger rounded-circle p-3 mb-2 shadow-sm anim-float">
+                        <div class="d-inline-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-circle p-3 mb-2 shadow-sm anim-float">
                             <i class="bi bi-airplane-fill fs-2"></i>
                         </div>
                         <h3 class="fw-bold text-dark mb-1">Begin Your Journey</h3>
@@ -29,12 +29,12 @@
                                 <label class="form-label small fw-bold text-muted d-block">Account Type</label>
                                 <div class="btn-group w-100 shadow-sm rounded-pill overflow-hidden p-1 bg-light" role="group">
                                     <input type="radio" class="btn-check" name="role" id="roleTourist" value="tourist" checked onchange="toggleRoleFields('tourist')">
-                                    <label class="btn btn-outline-danger border-0 rounded-pill fw-bold py-2" for="roleTourist">
+                                    <label class="btn btn-outline-primary border-0 rounded-pill fw-bold py-2" for="roleTourist">
                                         <i class="bi bi-person me-1"></i> Tourist / Traveler
                                     </label>
 
                                     <input type="radio" class="btn-check" name="role" id="roleAuthority" value="authority" onchange="toggleRoleFields('authority')">
-                                    <label class="btn btn-outline-danger border-0 rounded-pill fw-bold py-2" for="roleAuthority">
+                                    <label class="btn btn-outline-primary border-0 rounded-pill fw-bold py-2" for="roleAuthority">
                                         <i class="bi bi-shield-check me-1"></i> Tourism Authority
                                     </label>
                                 </div>
@@ -114,7 +114,7 @@
                             </div>
 
                             <div class="d-grid mt-4">
-                                <button type="submit" class="btn btn-danger btn-lg rounded-pill fw-bold shadow-sm py-2">
+                                <button type="submit" class="btn btn-primary btn-lg rounded-pill fw-bold shadow-sm py-2">
                                     Create Account <i class="bi bi-check-circle ms-1"></i>
                                 </button>
                             </div>
@@ -122,7 +122,7 @@
 
                         <div class="text-center mt-4">
                             <span class="text-muted small">Already have an account?</span>
-                            <a href="{{ url_for('auth.login') }}" class="fw-bold text-danger text-decoration-none small ms-1">Sign In</a>
+                            <a href="{{ url_for('auth.login') }}" class="fw-bold text-primary text-decoration-none small ms-1">Sign In</a>
                         </div>
                     </div>
                 </div>

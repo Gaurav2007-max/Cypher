@@ -75,7 +75,9 @@ def test_safety_center_offers_motion_enable_after_profile_consent(client, app):
     response = client.get('/safety')
     assert response.status_code == 200
     assert b'id="enableMotionDetection" data-sensor-consent="true"' in response.data
-    assert b'Motion sensing is off until you enable it here.' in response.data
+    assert b'Safety monitoring automatically starts when the browser grants sensor and location access.' in response.data
+    assert b'Monitoring stays enabled across TravelTech pages' in response.data
+    assert b'cannot monitor a powered-off phone' in response.data
 
 
 def test_safety_monitoring_requires_saved_location_consent(client, app):
@@ -91,6 +93,24 @@ def test_safety_monitoring_requires_saved_location_consent(client, app):
     assert response.status_code == 200
     assert b'id="enableMotionDetection"' not in response.data
     assert b'Enable location tracking consent in your profile' in response.data
+
+
+def test_saving_both_safety_consents_enables_automatic_monitoring_settings(client, app):
+    client.post('/login', data={'identifier': 'safety_tester', 'password': 'pass123'})
+    response = client.post('/profile', data={
+        'full_name': 'Safety Tester',
+        'proximity_radius': '50',
+        'speech_rate': '1.0',
+        'preferred_city_id': '',
+        'location_tracking_enabled': 'on',
+        'sensor_consent': 'on',
+    })
+
+    assert response.status_code == 302
+    with app.app_context():
+        profile = User.query.filter_by(username='safety_tester').first().profile
+        assert profile.location_tracking_enabled is True
+        assert profile.sensor_consent is True
 
 
 def dispatch_queued_action(client, app, action_id):

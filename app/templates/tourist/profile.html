@@ -115,13 +115,13 @@
                                 <div class="form-check form-switch mt-2">
                                     <input class="form-check-input" type="checkbox" name="location_tracking_enabled" id="locationTrackingSwitch" {% if profile.location_tracking_enabled %}checked{% endif %}>
                                     <label class="form-check-label small fw-semibold text-dark" for="locationTrackingSwitch">
-                                        Allow foreground location samples for nearby stories and the emergency location trail while safety monitoring is enabled
+                                        Allow location samples for nearby stories and the emergency location trail while safety monitoring is enabled
                                     </label>
                                 </div>
                                 <div class="form-check form-switch mt-2">
                                     <input class="form-check-input" type="checkbox" name="sensor_consent" id="sensorConsentSwitch" {% if profile.sensor_consent %}checked{% endif %}>
                                     <label class="form-check-label small fw-semibold text-dark" for="sensorConsentSwitch">
-                                        Allow optional device motion sensing for fall alerts (must also be enabled from the Safety Center)
+                                        Allow device motion sensing for fall alerts; safety monitoring will automatically start when both safety permissions are enabled
                                     </label>
                                 </div>
                             </div>
@@ -153,18 +153,64 @@
     </div>
 </div>
 <script>
-document.getElementById('profileSettingsForm')?.addEventListener('submit', () => {
+const profileSettingsForm = document.getElementById('profileSettingsForm');
+let submittedAfterPermissionRequest = false;
+profileSettingsForm?.addEventListener('submit', event => {
+    if (submittedAfterPermissionRequest) return;
+
+    const locationConsent = document.getElementById('locationTrackingSwitch').checked;
+    const sensorConsent = document.getElementById('sensorConsentSwitch').checked;
     try {
-        const locationConsent = document.getElementById('locationTrackingSwitch').checked;
-        const sensorConsent = document.getElementById('sensorConsentSwitch').checked;
         localStorage.setItem('traveltech-location-consent', String(locationConsent));
         localStorage.setItem('traveltech-sensor-consent', String(sensorConsent));
-        if (!locationConsent || !sensorConsent) {
-            localStorage.setItem('traveltech-safety-monitoring', 'false');
-        }
+        localStorage.setItem(
+            'traveltech-safety-monitoring',
+            String(locationConsent && sensorConsent)
+        );
+        if (!sensorConsent) localStorage.removeItem('traveltech-motion-permission');
     } catch (error) {
-        console.error('Could not broadcast the safety-consent changes to other tabs:', error);
+        console.error('Could not save the safety preferences in browser storage:', error);
     }
+
+    const motionEvent = window.DeviceMotionEvent;
+    if (!locationConsent || !sensorConsent ||
+        typeof motionEvent?.requestPermission !== 'function') return;
+
+    try {
+        if (localStorage.getItem('traveltech-motion-permission') === 'granted') return;
+    } catch (error) {
+        console.error('Could not read the motion permission state:', error);
+    }
+
+    event.preventDefault();
+    const submitter = event.submitter;
+    let permissionRequest;
+    try {
+        permissionRequest = motionEvent.requestPermission();
+    } catch (error) {
+        console.warn('Could not request motion permission from the settings action:', error);
+        submittedAfterPermissionRequest = true;
+        profileSettingsForm.requestSubmit(submitter);
+        return;
+    }
+
+    Promise.resolve(permissionRequest)
+        .then(permission => {
+            if (permission === 'granted') {
+                try {
+                    localStorage.setItem('traveltech-motion-permission', 'granted');
+                } catch (error) {
+                    console.error('Could not save the motion permission state:', error);
+                }
+            }
+        })
+        .catch(error => {
+            console.warn('Motion permission was not granted from settings:', error);
+        })
+        .finally(() => {
+            submittedAfterPermissionRequest = true;
+            profileSettingsForm.requestSubmit(submitter);
+        });
 });
 </script>
 {% endblock %}

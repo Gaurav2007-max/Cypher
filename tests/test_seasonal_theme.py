@@ -9,15 +9,10 @@ from app.models.city import City
 from app.models.destination import Destination
 
 
-def test_shimla_uses_winter_theme_during_winter_months():
-    for month in (12, 1, 2):
-        assert get_site_theme('Shimla', month) == 'winter'
-
-
-def test_winter_theme_is_limited_to_shimla_and_winter_months():
-    assert get_site_theme('Shimla', 3) == 'olive'
-    assert get_site_theme('Faridabad', 1) == 'olive'
-    assert get_site_theme(None, 1) == 'olive'
+def test_olive_theme_is_used_for_every_city_and_month():
+    for city_name in ('Shimla', 'Faridabad', 'Agra', 'Jaipur', 'Varanasi', None):
+        for month in range(1, 13):
+            assert get_site_theme(city_name, month) == 'olive'
 
 
 def test_destination_images_match_their_categories():
@@ -30,7 +25,7 @@ def test_destination_images_match_their_categories():
     assert 'Iskcon_Delhi_Temple.jpg' in temple.display_image_url
 
 
-def test_selected_shimla_winter_theme_is_exposed_to_all_templates(monkeypatch):
+def test_selected_shimla_uses_olive_theme_in_all_templates(monkeypatch):
     class JanuaryDateTime:
         @staticmethod
         def now():
@@ -64,4 +59,5 @@ def test_selected_shimla_winter_theme_is_exposed_to_all_templates(monkeypatch):
             session['selected_city_id'] = city_id
         response = client.get('/login')
 
-    assert b'data-seasonal-theme="winter"' in response.data
+    assert b'data-seasonal-theme="olive"' in response.data
+    assert b'class="olive-theme"' in response.data

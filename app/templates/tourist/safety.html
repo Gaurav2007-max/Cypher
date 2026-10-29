@@ -105,7 +105,7 @@
                     <span class="badge bg-secondary-subtle text-secondary">Opt-in Motion Heuristic</span>
                 </div>
                 <p class="text-muted small">
-                    With your saved location and motion consent, monitoring starts after one explicit enable action. Small jolts are ignored: a possible fall needs a near-free-fall motion followed by an impact over 28 m/s² within 1.2 seconds, then gives you 15 seconds to cancel. This is a conservative heuristic, not medical or guaranteed fall detection.
+                    With location and motion consent enabled in Settings, monitoring starts automatically whenever this site can access the sensors. On browsers that require a one-time motion permission gesture, grant it when saving Settings or use Resume below. Small jolts are ignored: a possible fall needs a near-free-fall motion followed by an impact over 28 m/s² within 1.2 seconds, then gives you 15 seconds to cancel. This is a conservative heuristic, not medical or guaranteed fall detection.
                 </p>
 
                 <div class="p-3 bg-light rounded-4 my-auto border text-center">
@@ -114,11 +114,11 @@
                     </div>
                     <div class="fw-bold text-dark">Device motion sensor</div>
                     <div id="motionSensorStatus" class="text-muted small mb-3" role="status" aria-live="polite" data-sensor-consent="{{ 'true' if sensor_consent else 'false' }}">
-                        {% if sensor_consent and location_consent %}Motion sensing is off until you enable it here.{% elif not sensor_consent %}Motion sensing is off. Enable sensor consent in your profile to continue.{% else %}Enable location tracking consent in your profile to start safety monitoring.{% endif %}
+                        {% if sensor_consent and location_consent %}Safety monitoring automatically starts when the browser grants sensor and location access.{% elif not sensor_consent %}Motion sensing is off. Enable sensor consent in your profile to continue.{% else %}Enable location tracking consent in your profile to start safety monitoring.{% endif %}
                     </div>
                     {% if sensor_consent and location_consent %}
                     <button id="enableMotionDetection" data-sensor-consent="true" class="btn btn-outline-success rounded-pill px-4 fw-bold shadow-sm mb-3">
-                        <i class="bi bi-shield-check me-1"></i>Enable safety monitoring
+                        <i class="bi bi-shield-check me-1"></i>Resume / grant sensor access
                     </button>
                     <button id="stopSafetyMonitoring" type="button" class="btn btn-outline-danger rounded-pill px-4 fw-bold shadow-sm mb-3" onclick="window.travelSafety.stopSafetyMonitoring()" hidden>
                         <i class="bi bi-pause-circle me-1"></i>Stop monitoring on this device
@@ -136,7 +136,7 @@
                 </div>
 
                 <div class="small text-muted border-top pt-3 mt-3">
-                    <i class="bi bi-exclamation-circle me-1"></i>Enable from this page to request browser permissions. Monitoring may pause when the browser is backgrounded or the phone is locked; a queued SOS countdown continues on the server after it has started. Sound and vibration depend on device/browser support and settings.
+                    <i class="bi bi-exclamation-circle me-1"></i>Monitoring stays enabled across TravelTech pages while permissions remain granted. Browsers and operating systems may pause motion/location events when the tab is hidden, the browser is closed, or the phone is locked; a website cannot monitor a powered-off phone or guarantee sensor access in other apps. A queued SOS countdown continues on the server after it has started.
                 </div>
             </div>
         </div>

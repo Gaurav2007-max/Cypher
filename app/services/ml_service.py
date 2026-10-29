@@ -8,10 +8,12 @@ Loads the trained RandomForest crowd-prediction model and exposes:
 Falls back gracefully to heuristic estimates when the model file is missing.
 """
 
-import os
+import copy
 import json
 import pickle
 import logging
+import threading
+from functools import lru_cache
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -29,6 +31,7 @@ _META_PATH  = _BASE_DIR / "ml" / "model_meta.json"
 _model    = None
 _meta     = None
 _loaded   = False
+_load_lock = threading.Lock()
 
 # ── Static look-up tables (mirrors generate_dataset_and_train.py) ──────────────
 WEATHER_CODES = [
@@ -81,23 +84,36 @@ def _load_model():
     if _loaded:
         return _model, _meta
 
-    _loaded = True
-    if _MODEL_PATH.exists() and _META_PATH.exists():
-        try:
-            with open(_MODEL_PATH, "rb") as f:
-                _model = pickle.load(f)
-            with open(_META_PATH, "r") as f:
-                _meta = json.load(f)
-            logger.info("ML crowd model loaded successfully (acc=%.2f%%)",
-                        _meta.get("accuracy", 0) * 100)
-        except Exception as e:
-            logger.warning("Failed to load ML model: %s — using heuristic fallback", e)
-            _model = None
-            _meta  = None
-    else:
-        logger.warning("ML model not found at %s — using heuristic fallback", _MODEL_PATH)
+    with _load_lock:
+        if _loaded:
+            return _model, _meta
+
+        if _MODEL_PATH.exists() and _META_PATH.exists():
+            try:
+                with open(_MODEL_PATH, "rb") as f:
+                    _model = pickle.load(f)
+                with open(_META_PATH, "r") as f:
+                    _meta = json.load(f)
+                logger.info("ML crowd model loaded successfully (acc=%.2f%%)",
+                            _meta.get("accuracy", 0) * 100)
+            except Exception as e:
+                logger.warning("Failed to load ML model: %s — using heuristic fallback", e)
+                _model = None
+                _meta = None
+        else:
+            logger.warning("ML model not found at %s — using heuristic fallback", _MODEL_PATH)
+        _loaded = True
 
     return _model, _meta
+
+
+def warm_model_cache():
+    """Load the prediction model before users request their first forecast."""
+    threading.Thread(
+        target=_load_model,
+        name="crowd-model-warmup",
+        daemon=True,
+    ).start()
 
 
 def _weather_for_month(month: int):
@@ -150,6 +166,70 @@ def _heuristic_crowd(dest_category: int, dest_base_popularity: float,
     }
 
 
+def _feature_map(dest_category: int, dest_base_popularity: float,
+                 dt: datetime, hour: int) -> dict:
+    wcode, temp, humidity, rainfall = _weather_for_month(dt.month)
+    traffic = _traffic_for_hour(hour, dt.weekday() >= 5)
+    return {
+        "dest_category": dest_category,
+        "dest_base_popularity": dest_base_popularity,
+        "hour_of_day": hour,
+        "day_of_week": dt.weekday(),
+        "day_of_year": dt.timetuple().tm_yday,
+        "day_of_month": dt.day,
+        "month": dt.month,
+        "is_weekend": int(dt.weekday() >= 5),
+        "is_holiday": int((dt.month, dt.day) in INDIAN_HOLIDAYS),
+        "is_festival_season": int(dt.month in FESTIVAL_MONTHS),
+        "weather_code": wcode,
+        "temperature_c": temp,
+        "humidity_pct": humidity,
+        "rainfall_mm": rainfall,
+        "city_traffic_index": traffic,
+    }
+
+
+def _heuristic_from_features(features: dict) -> dict:
+    return _heuristic_crowd(
+        features["dest_category"], features["dest_base_popularity"],
+        features["hour_of_day"], features["day_of_week"],
+        features["day_of_year"], features["month"], features["weather_code"],
+        features["temperature_c"], features["humidity_pct"],
+        features["rainfall_mm"], features["city_traffic_index"],
+        day_of_month=features["day_of_month"],
+    )
+
+
+def _predict_feature_maps(feature_maps: list[dict]) -> list[dict]:
+    model, meta = _load_model()
+    if model is None:
+        return [_heuristic_from_features(features) for features in feature_maps]
+
+    try:
+        columns = meta["features"]
+        batch = pd.DataFrame(feature_maps, columns=columns)
+        probabilities = model.predict_proba(batch)
+        class_labels = [int(label) for label in model.classes_]
+        predicted_indices = np.argmax(probabilities, axis=1)
+    except Exception:
+        logger.exception("Batch ML crowd prediction failed; using heuristic estimates")
+        return [_heuristic_from_features(features) for features in feature_maps]
+
+    results = []
+    for predicted_index, probabilities_for_row in zip(predicted_indices, probabilities):
+        level = class_labels[int(predicted_index)]
+        results.append({
+            "level": level,
+            "label": CROWD_LABELS[level],
+            "probability": round(float(probabilities_for_row[level]), 3),
+            "color": CROWD_COLORS[level],
+            "data_source": "ml_model",
+            "model_accuracy": meta.get("accuracy", 0),
+            "model_cv_accuracy": meta.get("cv_accuracy", 0),
+        })
+    return results
+
+
 def predict_crowd(dest_category: int, dest_base_popularity: float,
                   hour: int, dow: int, doy: int, month: int,
                   weather_code: int, temp: float, humidity: float,
@@ -161,35 +241,17 @@ def predict_crowd(dest_category: int, dest_base_popularity: float,
         {level: int 0-4, label: str, probability: float,
          color: str, data_source: 'ml_model'|'heuristic_fallback'}
     """
-    model, meta = _load_model()
-    # Calendar features must come from the forecast date, not the server's current date.
     day_of_month = day_of_month or datetime.now().day
-    is_holiday = int((month, day_of_month) in INDIAN_HOLIDAYS)
-
-    if model is None:
-        return _heuristic_crowd(dest_category, dest_base_popularity, hour, dow, doy,
-                                month, weather_code, temp, humidity, rainfall, traffic, day_of_month)
-
-    features = meta["features"]
-    X = [[
-        dest_category, dest_base_popularity,
-        hour, dow, doy, month,
-        int(dow >= 5),
-        is_holiday,
-        int(month in FESTIVAL_MONTHS),
-        weather_code, temp, humidity, rainfall, traffic
-    ]]
-
-    # Build feature vector in correct order
     feat_map = {
         "dest_category": dest_category,
         "dest_base_popularity": dest_base_popularity,
         "hour_of_day": hour,
         "day_of_week": dow,
         "day_of_year": doy,
+        "day_of_month": day_of_month,
         "month": month,
         "is_weekend": int(dow >= 5),
-        "is_holiday": is_holiday,
+        "is_holiday": int((month, day_of_month) in INDIAN_HOLIDAYS),
         "is_festival_season": int(month in FESTIVAL_MONTHS),
         "weather_code": weather_code,
         "temperature_c": temp,
@@ -197,37 +259,26 @@ def predict_crowd(dest_category: int, dest_base_popularity: float,
         "rainfall_mm": rainfall,
         "city_traffic_index": traffic,
     }
-    X = [[feat_map[f] for f in features]]
+    return _predict_feature_maps([feat_map])[0]
 
-    try:
-        import pandas as pd
-        X_df = pd.DataFrame([[feat_map[f] for f in features]], columns=features)
-        level = int(model.predict(X_df)[0])
-        proba = model.predict_proba(X_df)[0]
-        probability = float(proba[level])
-    except Exception as e:
-        logger.error("ML predict failed: %s", e)
-        return _heuristic_crowd(dest_category, dest_base_popularity, hour, dow, doy,
-                                month, weather_code, temp, humidity, rainfall, traffic, day_of_month)
 
-    return {
-        "level": level,
-        "label": CROWD_LABELS[level],
-        "probability": round(probability, 3),
-        "color": CROWD_COLORS[level],
-        "data_source": "ml_model",
-        "model_accuracy": meta.get("accuracy", 0),
-        "model_cv_accuracy": meta.get("cv_accuracy", 0),
-    }
+@lru_cache(maxsize=256)
+def _daily_profile_cached(dest_category: int, dest_base_popularity: float,
+                          date_str: str) -> tuple[dict, ...]:
+    dt = datetime.strptime(date_str, "%Y-%m-%d")
+    predictions = _predict_feature_maps([
+        _feature_map(dest_category, dest_base_popularity, dt, hour)
+        for hour in range(24)
+    ])
+    for hour, prediction in enumerate(predictions):
+        prediction["hour"] = hour
+        prediction["hour_label"] = f"{hour:02d}:00"
+    return tuple(predictions)
 
 
 def predict_daily_profile(dest_category: int, dest_base_popularity: float,
-                           date_str: str | None = None) -> list[dict]:
-    """
-    Return 24 hourly predictions for a given date (defaults to today).
-
-    Returns: list of 24 dicts with keys hour, level, label, probability, color
-    """
+                          date_str: str | None = None) -> list[dict]:
+    """Return cached, batched hourly crowd estimates for the requested date."""
     if date_str:
         try:
             dt = datetime.strptime(date_str, "%Y-%m-%d")
@@ -235,68 +286,33 @@ def predict_daily_profile(dest_category: int, dest_base_popularity: float,
             raise ValueError("date must use YYYY-MM-DD format") from exc
     else:
         dt = datetime.now()
-
-    month  = dt.month
-    dow    = dt.weekday()
-    doy    = dt.timetuple().tm_yday
-    wcode, temp, hum, rain = _weather_for_month(month)
-    is_weekend = dow >= 5
-
-    profile = []
-    for hour in range(24):
-        traffic = _traffic_for_hour(hour, is_weekend)
-        pred = predict_crowd(
-            dest_category, dest_base_popularity,
-            hour, dow, doy, month,
-            wcode, temp, hum, rain, traffic, day_of_month=dt.day
-        )
-        pred["hour"] = hour
-        pred["hour_label"] = f"{hour:02d}:00"
-        profile.append(pred)
-
-    return profile
+    return copy.deepcopy(_daily_profile_cached(
+        dest_category, dest_base_popularity, dt.strftime("%Y-%m-%d")
+    ))
 
 
-def predict_weekly_profile(dest_category: int, dest_base_popularity: float,
-                            start_date_str: str | None = None) -> dict:
-    """
-    Return a 7-day × 24-hour matrix starting from start_date (defaults to today).
-
-    Returns: {
-        days: [ {date, day_name, hours: [24 prediction dicts]} × 7 ],
-        summary: { avg_level, peak_day, peak_hour }
-    }
-    """
-    if start_date_str:
-        try:
-            start = datetime.strptime(start_date_str, "%Y-%m-%d")
-        except ValueError as exc:
-            raise ValueError("start must use YYYY-MM-DD format") from exc
-    else:
-        start = datetime.now().replace(hour=0, minute=0, second=0)
-
+@lru_cache(maxsize=128)
+def _weekly_profile_cached(dest_category: int, dest_base_popularity: float,
+                           start_date_str: str) -> dict:
+    start = datetime.strptime(start_date_str, "%Y-%m-%d")
+    datetimes = [
+        start + timedelta(days=day)
+        for day in range(7)
+    ]
+    feature_maps = [
+        _feature_map(dest_category, dest_base_popularity, dt, hour)
+        for dt in datetimes
+        for hour in range(24)
+    ]
+    predictions = _predict_feature_maps(feature_maps)
     days_data = []
     all_levels = []
 
-    for d in range(7):
-        dt = start + timedelta(days=d)
-        month  = dt.month
-        dow    = dt.weekday()
-        doy    = dt.timetuple().tm_yday
-        wcode, temp, hum, rain = _weather_for_month(month)
-        is_weekend = dow >= 5
-
-        hours_data = []
-        for hour in range(24):
-            traffic = _traffic_for_hour(hour, is_weekend)
-            pred = predict_crowd(
-                dest_category, dest_base_popularity,
-                hour, dow, doy, month,
-                wcode, temp, hum, rain, traffic, day_of_month=dt.day
-            )
+    for day_index, dt in enumerate(datetimes):
+        hours_data = predictions[day_index * 24:(day_index + 1) * 24]
+        for hour, pred in enumerate(hours_data):
             pred["hour"] = hour
             pred["hour_label"] = f"{hour:02d}:00"
-            hours_data.append(pred)
             all_levels.append(pred["level"])
 
         days_data.append({
@@ -328,6 +344,22 @@ def predict_weekly_profile(dest_category: int, dest_base_popularity: float,
         "model_accuracy": meta.get("accuracy", 0) if meta else 0,
         "model_cv_accuracy": meta.get("cv_accuracy", 0) if meta else 0,
     }
+
+
+def predict_weekly_profile(dest_category: int, dest_base_popularity: float,
+                           start_date_str: str | None = None) -> dict:
+    """Return a cached weekly heatmap generated from one batched model call."""
+    if start_date_str:
+        try:
+            start = datetime.strptime(start_date_str, "%Y-%m-%d")
+        except ValueError as exc:
+            raise ValueError("start must use YYYY-MM-DD format") from exc
+    else:
+        start = datetime.now()
+    result = copy.deepcopy(_weekly_profile_cached(
+        dest_category, dest_base_popularity, start.strftime("%Y-%m-%d")
+    ))
+    return result
 
 
 def get_model_info() -> dict:

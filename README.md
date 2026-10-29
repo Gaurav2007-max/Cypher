@@ -8,7 +8,7 @@ A full-stack, responsive web application engineered in Python with Flask that en
 
 ### 1. Modern, Highly Visual, Mobile-First Interface
 - Minimal prose, maximum high-resolution travel photography, and dynamic micro-animations (floating travel icons, radar SOS pulse, audio equalizer bars).
-- Uses an olive-green interface by default and switches to a cool winter palette with subtle snowfall when Shimla is selected from December through February; the selected-city theme carries across pages.
+- Uses a consistent olive-green interface across all cities and pages, while emergency SOS controls retain a distinct red safety color.
 - Destination photos are matched to their subject, with source attribution shown for the Faridabad palace hero image.
 - Responsive mobile bottom navigation bar designed for quick single-hand thumb navigation while walking.
 
@@ -35,7 +35,7 @@ A full-stack, responsive web application engineered in Python with Flask that en
 ### 5. Tourist Safety & Emergency Response
 - **Emergency Contacts:** Supports personal emergency contacts as well as International Travel Assistance Agencies / Consulate Desks for foreign tourists.
 - **Manual SOS:** Stores a server-side pending action with a 30-second cancellation window, so dispatch is not controlled by a browser timer. The worker records an incident and attempts SMTP delivery after the deadline; incident recording and email delivery are reported separately. Live SMTP requires an explicitly verified emergency-contact email.
-- **Potential Fall & Impact Detection:** Requires saved location and motion consent, then one explicit enable action in the Safety Center. The conservative heuristic ignores small jolts and only prompts after a near-free-fall signal followed by a strong impact; it is not medical or guaranteed fall detection. Alerts attempt repeated audible tones and vibration, subject to browser/device support and settings. Browser sensor monitoring may pause when the phone is locked or the page is suspended; once an SOS is queued, its countdown and dispatch continue server-side.
+- **Potential Fall & Impact Detection:** Enabling saved location and motion consent in Settings automatically starts monitoring across TravelTech pages after browser permissions are granted; the Safety Center retains controls to resume or stop it on the device. The conservative heuristic ignores small jolts and only prompts after a near-free-fall signal followed by a strong impact; it is not medical or guaranteed fall detection. Browsers and operating systems may pause sensor/location events when the tab is hidden, the browser is closed, or the phone is locked, so background monitoring is best-effort and cannot run with the phone powered off. Once an SOS is queued, its countdown and dispatch continue server-side.
 - **10-Minute Rolling Location History Trail:** Requires saved location consent and the explicit Safety Center monitoring action. Samples older than 10 minutes are automatically purged; opting out deletes stored samples. Coordinates are snapshotted into incident records when a queued alert is processed.
 - **Safety Check-in Timer:** Supports minute-based timers. On expiry, the app provides a 15-second response period and then a 30-second server-side cancellation period before queuing the alert. Users can confirm safety during either period.
 - **Privacy First:** Explicit opt-in switches, coordinates never exposed to other tourists, zero credential leaks.

@@ -22,7 +22,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block extra_head %}{% endblock %}
 </head>
-<body class="{{ 'winter-theme' if site_theme == 'winter' else 'olive-theme' }}" data-seasonal-theme="{{ site_theme }}" data-location-consent="{{ 'true' if current_user and current_user.profile and current_user.profile.location_tracking_enabled else 'false' }}" data-sensor-consent="{{ 'true' if current_user and current_user.profile and current_user.profile.sensor_consent else 'false' }}">
+<body class="olive-theme" data-seasonal-theme="{{ site_theme }}" data-location-consent="{{ 'true' if current_user and current_user.profile and current_user.profile.location_tracking_enabled else 'false' }}" data-sensor-consent="{{ 'true' if current_user and current_user.profile and current_user.profile.sensor_consent else 'false' }}">
 
     <a class="skip-link" href="#main-content">Skip to content</a>
 
@@ -79,7 +79,7 @@
                     </span>
 
                     {% if current_user.is_tourist %}
-                    <a href="{{ url_for('tourist.safety_center') }}" class="btn btn-outline-danger btn-sm rounded-pill fw-bold px-3">
+                    <a href="{{ url_for('tourist.safety_center') }}" class="btn btn-outline-sos btn-sm rounded-pill fw-bold px-3">
                         <i class="bi bi-shield-exclamation me-1"></i>SOS
                     </a>
                     {% endif %}
@@ -106,7 +106,7 @@
                 </div>
                 {% else %}
                 <div class="ms-auto d-flex gap-2">
-                    <a href="{{ url_for('auth.login') }}" class="btn btn-outline-dark rounded-pill px-4 fw-semibold">Sign In</a>
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary rounded-pill px-4 fw-semibold">Sign In</a>
                     <a href="{{ url_for('auth.register') }}" class="btn btn-primary rounded-pill px-4 fw-semibold">Join Free</a>
                 </div>
                 {% endif %}
@@ -158,7 +158,7 @@
                 <button id="confirmCheckinSafeButton" type="button" class="btn btn-success btn-lg rounded-pill fw-bold" onclick="window.travelSafety.confirmCheckInSafe()">
                     I am safe
                 </button>
-                <button id="requestCheckinHelpButton" type="button" class="btn btn-outline-danger btn-lg rounded-pill fw-bold" onclick="window.travelSafety.requestCheckInHelp()">
+                <button id="requestCheckinHelpButton" type="button" class="btn btn-outline-sos btn-lg rounded-pill fw-bold" onclick="window.travelSafety.requestCheckInHelp()">
                     Request help now
                 </button>
             </div>
@@ -243,7 +243,7 @@
                     </div>
 
                     <div class="d-flex gap-2">
-                        <button id="proxStoryPlayBtn" class="btn btn-danger rounded-pill flex-grow-1 fw-bold">
+                        <button id="proxStoryPlayBtn" class="btn btn-primary rounded-pill flex-grow-1 fw-bold">
                             <i class="bi bi-volume-up-fill me-2"></i>Listen to Story
                         </button>
                         <button class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">
@@ -269,7 +269,7 @@
                     <button class="btn btn-success btn-lg rounded-pill fw-bold py-3" onclick="window.travelSafety.cancelFallAlert()">
                         <i class="bi bi-check-circle-fill me-2"></i>I AM OKAY (CANCEL ALERT)
                     </button>
-                    <button class="btn btn-outline-danger rounded-pill" onclick="window.travelSafety.executeSosPost({ incident_type: 'fall_detected' })">
+                    <button class="btn btn-outline-sos rounded-pill" onclick="window.travelSafety.executeSosPost({ incident_type: 'fall_detected' })">
                         Start SOS (30-second cancel)
                     </button>
                 </div>

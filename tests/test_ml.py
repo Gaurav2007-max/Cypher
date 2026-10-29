@@ -39,6 +39,38 @@ def auth_client(client):
 # ── ml_service unit tests ──────────────────────────────────────────────────────
 
 class TestMLService:
+    def test_weekly_forecast_runs_model_in_one_batch(self, monkeypatch):
+        from app.services import ml_service
+
+        class BatchModel:
+            predict_proba_calls = 0
+            classes_ = [0, 1, 2, 3, 4]
+
+            def predict_proba(self, features):
+                self.predict_proba_calls += 1
+                assert len(features) == 168
+                return [[0, 0, 1, 0, 0]] * len(features)
+
+        model = BatchModel()
+        metadata = {
+            "features": [
+                "dest_category", "dest_base_popularity", "hour_of_day",
+                "day_of_week", "day_of_year", "month", "is_weekend",
+                "is_holiday", "is_festival_season", "weather_code",
+                "temperature_c", "humidity_pct", "rainfall_mm",
+                "city_traffic_index",
+            ],
+            "accuracy": 0.7,
+            "cv_accuracy": 0.6,
+        }
+        monkeypatch.setattr(ml_service, "_load_model", lambda: (model, metadata))
+        ml_service._weekly_profile_cached.cache_clear()
+
+        forecast = ml_service.predict_weekly_profile(0, 0.7, "2031-10-01")
+
+        assert len(forecast["days"]) == 7
+        assert model.predict_proba_calls == 1
+
     def test_import_without_crash(self):
         """Importing ml_service must not raise even if model file is absent."""
         from app.services import ml_service  # noqa

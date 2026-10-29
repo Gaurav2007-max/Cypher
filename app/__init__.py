@@ -8,9 +8,6 @@ from app.auth_utils import get_current_user
 
 
 def get_site_theme(city_name, month=None):
-    month = month or datetime.now().month
-    if city_name and city_name.strip().casefold() == 'shimla' and month in (12, 1, 2):
-        return 'winter'
     return 'olive'
 
 
@@ -192,4 +189,8 @@ def create_app(config_class=Config):
             db.session.commit()
 
     start_safety_scheduler(flask_app)
+    if not flask_app.testing:
+        from app.services.ml_service import warm_model_cache
+
+        warm_model_cache()
     return flask_app

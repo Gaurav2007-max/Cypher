@@ -49,13 +49,16 @@ window.openCrowdForecastModal = function (destId, destName) {
 
   // Show loading states
   _setLoadingState(true);
+  const weeklyHeatmap = document.getElementById("weeklyHeatmap");
+  if (weeklyHeatmap) {
+    weeklyHeatmap.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary" role="status"></div><span class="visually-hidden">Loading weekly crowd predictions</span></div>';
+  }
 
   // Open modal first for responsive feel
   const modalEl = document.getElementById("crowdForecastModal");
   const modal   = bootstrap.Modal.getOrCreateInstance(modalEl);
   modal.show();
 
-  // Parallel fetch: daily + weekly
   const fetchJson = (url) => fetch(url, { headers: { Accept: "application/json" } }).then(async (response) => {
     const contentType = response.headers.get("content-type") || "";
     if (!contentType.includes("application/json")) {
@@ -69,20 +72,32 @@ window.openCrowdForecastModal = function (destId, destName) {
     return body;
   });
 
-  Promise.all([
-    fetchJson(`/api/ml/crowd-forecast/${destId}`),
-    fetchJson(`/api/ml/crowd-weekly/${destId}`),
-  ])
-    .then(([daily, weekly]) => {
+  fetchJson(`/api/ml/crowd-forecast/${destId}`)
+    .then((daily) => {
       if (_currentDestId !== requestedDestId) return;
-      if (!Array.isArray(daily.crowd_levels) || daily.crowd_levels.length !== 24 ||
-          !weekly.weekly_forecast?.days?.length) {
-        throw new Error("The forecast response was incomplete.");
+      if (!Array.isArray(daily.crowd_levels) || daily.crowd_levels.length !== 24) {
+        throw new Error("The daily forecast response was incomplete.");
       }
       _renderDailyChart(daily);
-      _renderWeeklyHeatmap(weekly);
-      _renderMetaBadges(daily, weekly);
+      _renderMetaBadges(daily);
       _setLoadingState(false);
+
+      return fetchJson(`/api/ml/crowd-weekly/${destId}`)
+        .then((weekly) => {
+          if (_currentDestId !== requestedDestId) return;
+          if (!weekly.weekly_forecast?.days?.length) {
+            throw new Error("The weekly forecast response was incomplete.");
+          }
+          _renderWeeklyHeatmap(weekly);
+          _renderMetaBadges(daily, weekly);
+        })
+        .catch((err) => {
+          console.error("Weekly crowd forecast fetch error:", err);
+          if (_currentDestId === requestedDestId) {
+            const heatmap = document.getElementById("weeklyHeatmap");
+            if (heatmap) heatmap.textContent = "The weekly forecast could not be loaded. The daily chart is still available.";
+          }
+        });
     })
     .catch((err) => {
       console.error("Crowd forecast fetch error:", err);
@@ -264,7 +279,7 @@ function _renderMetaBadges(daily, weekly) {
   let sourceLabel, sourceCls;
   if (ds === "ml_model") {
     sourceLabel = `ML Model (acc ≈ ${acc ? Math.round(acc * 100) : "?"}%, CV ${cv ? Math.round(cv * 100) : "?"}%)`;
-    sourceCls   = "bg-info text-dark";
+    sourceCls   = "bg-primary text-white";
   } else {
     sourceLabel = "Heuristic Estimate (model not yet available)";
     sourceCls   = "bg-secondary text-white";
@@ -308,4 +323,3 @@ document.addEventListener("DOMContentLoaded", () => {
     _currentDestId = null;
   });
 });
-

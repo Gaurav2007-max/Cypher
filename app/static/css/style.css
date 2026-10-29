@@ -65,6 +65,50 @@ body {
     --bs-btn-active-border-color: var(--primary-hover);
 }
 
+.btn-danger {
+    --bs-btn-color: #fff;
+    --bs-btn-bg: var(--primary);
+    --bs-btn-border-color: var(--primary);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--primary-hover);
+    --bs-btn-hover-border-color: var(--primary-hover);
+    --bs-btn-active-bg: var(--primary-hover);
+    --bs-btn-active-border-color: var(--primary-hover);
+    --bs-btn-disabled-bg: var(--primary);
+    --bs-btn-disabled-border-color: var(--primary);
+}
+
+.btn-outline-danger {
+    --bs-btn-color: var(--primary-hover);
+    --bs-btn-border-color: var(--primary);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--primary);
+    --bs-btn-hover-border-color: var(--primary);
+    --bs-btn-active-bg: var(--primary-hover);
+    --bs-btn-active-border-color: var(--primary-hover);
+}
+
+.btn-sos {
+    --bs-btn-color: #fff;
+    --bs-btn-bg: #C5223A;
+    --bs-btn-border-color: #C5223A;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: #A51C30;
+    --bs-btn-hover-border-color: #A51C30;
+    --bs-btn-active-bg: #8E1729;
+    --bs-btn-active-border-color: #8E1729;
+}
+
+.btn-outline-sos {
+    --bs-btn-color: #B51F35;
+    --bs-btn-border-color: #C5223A;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: #C5223A;
+    --bs-btn-hover-border-color: #C5223A;
+    --bs-btn-active-bg: #A51C30;
+    --bs-btn-active-border-color: #A51C30;
+}
+
 html {
     scroll-behavior: smooth;
     scroll-padding-top: 5.5rem;
@@ -347,82 +391,6 @@ main {
     z-index: 1060;
     max-height: min(60vh, 420px);
     overflow-y: auto;
-}
-
-body.winter-theme {
-    --primary: #52788A;
-    --primary-hover: #3E6273;
-    --primary-light: #E5EFF3;
-    --secondary: #7899A3;
-    --secondary-dark: #587783;
-    --accent: #B77964;
-    --dark: #293943;
-    --gray-bg: #F0F5F7;
-    --bs-primary: #52788A;
-    --bs-primary-rgb: 82, 120, 138;
-    --bs-success: #5C806B;
-    --bs-success-rgb: 92, 128, 107;
-    --bs-link-color: #3E6273;
-    --bs-link-hover-color: #304F5E;
-    background-image: linear-gradient(180deg, #F5F9FA 0%, #EDF3F5 100%);
-    color: #293943;
-}
-
-body.winter-theme .navbar-custom,
-body.winter-theme .mobile-bottom-bar {
-    background: rgba(248, 252, 253, 0.95);
-    border-color: rgba(82, 120, 138, 0.16);
-}
-
-body.winter-theme .city-hero {
-    background-color: #486979;
-    box-shadow: 0 18px 40px rgba(52, 83, 98, 0.2);
-}
-
-body.winter-theme .city-hero::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    z-index: 2;
-    pointer-events: none;
-    opacity: 0.58;
-    background-image:
-        radial-gradient(3px 3px at 24px 36px, rgba(255, 255, 255, 0.95) 50%, transparent 55%),
-        radial-gradient(2px 2px at 110px 90px, rgba(255, 255, 255, 0.85) 50%, transparent 55%),
-        radial-gradient(2px 2px at 170px 20px, rgba(255, 255, 255, 0.8) 50%, transparent 55%);
-    background-size: 210px 180px, 260px 230px, 320px 260px;
-    animation: winterDrift 18s linear infinite;
-}
-
-body.winter-theme .city-hero-content {
-    z-index: 3;
-}
-
-@keyframes winterDrift {
-    to { background-position: 0 360px, 0 460px, 0 520px; }
-}
-
-.winter-season-badge {
-    color: #274B5B;
-    background: rgba(237, 247, 250, 0.94);
-    border: 1px solid rgba(255, 255, 255, 0.65);
-}
-
-body.winter-theme .travel-card {
-    border: 1px solid rgba(82, 120, 138, 0.12);
-    box-shadow: 0 10px 30px rgba(52, 83, 98, 0.08);
-}
-
-body.winter-theme .filter-chip:hover,
-body.winter-theme .filter-chip.active {
-    box-shadow: 0 4px 12px rgba(82, 120, 138, 0.24);
-}
-
-@media (prefers-reduced-motion: reduce) {
-    body.winter-theme .city-hero::before {
-        animation: none;
-    }
 }
 
 .login-page {
