@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+
+{% block title %}Administrator Console — TravelTech Governance{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <span class="badge bg-dark rounded-pill px-3 py-1 mb-1">System Governance & Verification</span>
+            <h3 class="fw-bold mb-0 text-dark"><i class="bi bi-shield-lock-fill text-dark me-2"></i>Administrator Console</h3>
+            <div class="text-muted small">Manage roles, approve authority accounts, verify data integrity, and inspect audit trails</div>
+        </div>
+        <div class="d-flex gap-2">
+            <span class="badge bg-light text-dark border p-2">
+                <i class="bi bi-person-check me-1"></i>Super Admin: <strong>{{ user.username }}</strong>
+            </span>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+        <h5 class="fw-bold mb-3"><i class="bi bi-collection-fill text-primary me-2"></i>Content Management</h5>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-outline-primary rounded-pill" href="{{ url_for('admin.manage_content', kind='destinations') }}">Destinations</a>
+            <a class="btn btn-outline-primary rounded-pill" href="{{ url_for('admin.manage_content', kind='stories') }}">Stories</a>
+            <a class="btn btn-outline-primary rounded-pill" href="{{ url_for('admin.manage_content', kind='activities') }}">Activities</a>
+            <a class="btn btn-outline-primary rounded-pill" href="{{ url_for('admin.manage_content', kind='cuisine') }}">Cuisine</a>
+        </div>
+    </div>
+
+    <!-- Quick Stat Metrics -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white text-center">
+                <div class="display-6 fw-bold text-dark">{{ total_users }}</div>
+                <div class="small text-muted">Registered Users</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white text-center">
+                <div class="display-6 fw-bold text-primary">{{ authorities_count }}</div>
+                <div class="small text-muted">Authorities</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white text-center">
+                <div class="display-6 fw-bold text-warning">{{ pending_authorities|length }}</div>
+                <div class="small text-muted">Pending Approvals</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white text-center">
+                <div class="display-6 fw-bold text-danger">{{ pending_feedbacks|length }}</div>
+                <div class="small text-muted">Pending Reports</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Authority Approvals Section (Crucial RBAC feature) -->
+    {% if pending_authorities %}
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-warning-subtle border-start border-4 border-warning">
+        <h5 class="fw-bold mb-2 text-warning-emphasis"><i class="bi bi-person-plus-fill me-2"></i>Pending Authority Account Approvals ({{ pending_authorities|length }})</h5>
+        <p class="small text-muted mb-3">These users registered requesting Authority status. Approving grants them permission to dispatch crowd alerts.</p>
+        <div class="table-responsive bg-white rounded-3 p-2 shadow-sm">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Registration Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for auth_user in pending_authorities %}
+                    <tr>
+                        <td class="fw-bold">{{ auth_user.username }}</td>
+                        <td>{{ auth_user.email }}</td>
+                        <td class="small text-muted">{{ auth_user.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            <form method="POST" action="{{ url_for('admin.approve_authority', user_id=auth_user.id) }}" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-success rounded-pill px-3 fw-bold">
+                                    <i class="bi bi-check-lg me-1"></i>Approve Authority
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ url_for('admin.reject_authority', user_id=auth_user.id) }}" class="d-inline ms-1">
+                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                                    Decline
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- User Management Section -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+        <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-people-fill text-primary me-2"></i>User & Role Management</h5>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>User</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Authority Status</th>
+                        <th>Account Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in all_users %}
+                    <tr>
+                        <td class="fw-bold">{{ u.username }}</td>
+                        <td class="small text-muted">{{ u.email }}</td>
+                        <td>
+                            <span class="badge bg-light text-dark border text-uppercase">{{ u.role }}</span>
+                        </td>
+                        <td>
+                            {% if u.role == 'authority' %}
+                                {% if u.authority_approved %}
+                                <span class="badge bg-success-subtle text-success">Approved</span>
+                                {% else %}
+                                <span class="badge bg-warning-subtle text-warning">Pending Approval</span>
+                                {% endif %}
+                            {% else %}
+                            <span class="text-muted small">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if u.is_active %}
+                            <span class="badge bg-success">Active</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Deactivated</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                {% if u.role == 'authority' %}
+                                    {% if not u.authority_approved %}
+                                    <form method="POST" action="{{ url_for('admin.approve_authority', user_id=u.id) }}">
+                                        <button class="btn btn-xs btn-outline-success rounded-pill px-2 py-1" style="font-size:0.75rem;">Approve</button>
+                                    </form>
+                                    {% else %}
+                                    <form method="POST" action="{{ url_for('admin.revoke_authority', user_id=u.id) }}">
+                                        <button class="btn btn-xs btn-outline-warning rounded-pill px-2 py-1" style="font-size:0.75rem;">Revoke</button>
+                                    </form>
+                                    {% endif %}
+                                {% endif %}
+
+                                {% if u.id != current_user.id %}
+                                <form method="POST" action="{{ url_for('admin.toggle_user_status', user_id=u.id) }}">
+                                    <button class="btn btn-xs btn-outline-danger rounded-pill px-2 py-1" style="font-size:0.75rem;">
+                                        {{ 'Deactivate' if u.is_active else 'Activate' }}
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Data Verification & Destination Management -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+        <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-patch-check-fill text-success me-2"></i>Destination Data Verification</h5>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Destination</th>
+                        <th>City</th>
+                        <th>Source Attribution</th>
+                        <th>Last Verified</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in all_destinations %}
+                    <tr>
+                        <td class="fw-bold">{{ d.name }}</td>
+                        <td>{{ d.city.name }}</td>
+                        <td class="small text-muted">{{ d.source_attribution }}</td>
+                        <td class="small text-muted">{{ d.last_verified_at.strftime('%Y-%m-%d') if d.last_verified_at else 'Unverified' }}</td>
+                        <td>
+                            <form method="POST" action="{{ url_for('admin.verify_destination', dest_id=d.id) }}">
+                                <button type="submit" class="btn btn-sm btn-outline-success rounded-pill px-3">
+                                    <i class="bi bi-check2-all me-1"></i>Verify Today
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Feedback Moderation Queue -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+        <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-chat-quote-fill text-warning me-2"></i>Tourist Reports & Moderation Queue</h5>
+        {% if pending_feedbacks %}
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Target</th>
+                        <th>Description</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fb in pending_feedbacks %}
+                    <tr>
+                        <td class="small text-muted">{{ fb.created_at.strftime('%m-%d %H:%M') }}</td>
+                        <td><span class="badge bg-light text-dark border">{{ fb.feedback_type|replace('_', ' ')|title }}</span></td>
+                        <td class="fw-bold small">{{ fb.destination.name if fb.destination else 'General' }}</td>
+                        <td class="small text-muted">{{ fb.description }}</td>
+                        <td>
+                            <form method="POST" action="{{ url_for('admin.resolve_feedback', report_id=fb.id) }}" class="d-flex gap-1">
+                                <button name="status" value="resolved" class="btn btn-xs btn-success rounded-pill px-2 py-1" style="font-size:0.75rem;">Resolve</button>
+                                <button name="status" value="dismissed" class="btn btn-xs btn-outline-secondary rounded-pill px-2 py-1" style="font-size:0.75rem;">Dismiss</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-3 bg-light rounded-3 text-center text-muted small">No pending feedback reports requiring moderation.</div>
+        {% endif %}
+    </div>
+
+    <!-- Security & Audit Trail Logs -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+        <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-journal-text text-dark me-2"></i>System Security & Audit Trail</h5>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Timestamp (UTC)</th>
+                        <th>Action</th>
+                        <th>User</th>
+                        <th>IP Address</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in audit_logs %}
+                    <tr>
+                        <td class="small text-muted">{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td><span class="badge bg-light text-dark border">{{ log.action }}</span></td>
+                        <td class="small fw-semibold">{{ log.user.username if log.user else 'System' }}</td>
+                        <td class="small text-muted">{{ log.ip_address or '127.0.0.1' }}</td>
+                        <td class="small text-muted text-truncate" style="max-width: 280px;">{{ log.details_json }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

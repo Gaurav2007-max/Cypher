@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Register — TravelTech Platform{% endblock %}
+
+{% block content %}
+<div class="container-fluid min-vh-100 p-0 d-flex align-items-center justify-content-center py-5" style="
+    background: linear-gradient(135deg, rgba(17, 24, 39, 0.8) 0%, rgba(31, 41, 55, 0.9) 100%), 
+    url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80') center/cover no-repeat fixed;
+">
+    <div class="container my-auto">
+        <div class="row justify-content-center">
+            <div class="col-md-9 col-lg-7 col-xl-6">
+                <div class="card border-0 shadow-lg rounded-5 overflow-hidden" style="background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(16px);">
+                    
+                    <div class="p-4 pt-5 text-center">
+                        <div class="d-inline-flex align-items-center justify-content-center bg-danger-subtle text-danger rounded-circle p-3 mb-2 shadow-sm anim-float">
+                            <i class="bi bi-airplane-fill fs-2"></i>
+                        </div>
+                        <h3 class="fw-bold text-dark mb-1">Begin Your Journey</h3>
+                        <p class="text-muted small">Choose your role and set up your cultural travel profile</p>
+                    </div>
+
+                    <div class="card-body p-4 pt-0">
+                        <form method="POST" action="{{ url_for('auth.register') }}">
+                            
+                            <!-- Role Selection Toggle -->
+                            <div class="mb-4 text-center">
+                                <label class="form-label small fw-bold text-muted d-block">Account Type</label>
+                                <div class="btn-group w-100 shadow-sm rounded-pill overflow-hidden p-1 bg-light" role="group">
+                                    <input type="radio" class="btn-check" name="role" id="roleTourist" value="tourist" checked onchange="toggleRoleFields('tourist')">
+                                    <label class="btn btn-outline-danger border-0 rounded-pill fw-bold py-2" for="roleTourist">
+                                        <i class="bi bi-person me-1"></i> Tourist / Traveler
+                                    </label>
+
+                                    <input type="radio" class="btn-check" name="role" id="roleAuthority" value="authority" onchange="toggleRoleFields('authority')">
+                                    <label class="btn btn-outline-danger border-0 rounded-pill fw-bold py-2" for="roleAuthority">
+                                        <i class="bi bi-shield-check me-1"></i> Tourism Authority
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-muted">Username</label>
+                                    <input type="text" name="username" class="form-control bg-light border-0 py-2" placeholder="e.g. wanderer26" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-muted">Full Name</label>
+                                    <input type="text" name="full_name" class="form-control bg-light border-0 py-2" placeholder="e.g. John Doe">
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="form-label small fw-bold text-muted">Email Address</label>
+                                    <input type="email" name="email" class="form-control bg-light border-0 py-2" placeholder="john@example.com" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-muted">Password</label>
+                                    <input type="password" name="password" class="form-control bg-light border-0 py-2" placeholder="••••••••" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-muted">Confirm Password</label>
+                                    <input type="password" name="confirm_password" class="form-control bg-light border-0 py-2" placeholder="••••••••" required>
+                                </div>
+                            </div>
+
+                            <!-- Tourist-specific fields -->
+                            <div id="touristFields" class="mt-4">
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-muted">Primary Exploration City</label>
+                                    <select name="preferred_city_id" class="form-select bg-light border-0 py-2">
+                                        {% for c in cities %}
+                                        <option value="{{ c.id }}" {% if c.name == 'Faridabad' %}selected{% endif %}>
+                                            {{ c.name }}, {{ c.state }} {% if c.name == 'Faridabad' %}(Showcase City){% endif %}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <div class="p-3 bg-light rounded-4 border mt-3">
+                                    <div class="fw-bold small text-dark mb-1">
+                                        <i class="bi bi-shield-check text-success me-1"></i>Emergency Contact (Safety First)
+                                    </div>
+                                    <p class="text-muted small mb-3">Your emergency contact receives instant alerts if you trigger SOS or if a check-in expires.</p>
+                                    
+                                    <div class="row g-2">
+                                        <div class="col-md-6">
+                                            <input type="text" name="contact_name" class="form-control border-0 py-2" placeholder="Contact or Agency Name">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <input type="email" name="contact_email" class="form-control border-0 py-2" placeholder="contact@example.com">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <input type="text" name="contact_phone" class="form-control border-0 py-2" placeholder="Phone Number">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <input type="text" name="contact_relationship" class="form-control border-0 py-2" placeholder="Relationship / Family / Agency">
+                                        </div>
+                                        <div class="col-12 mt-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="is_agency" id="agencyCheck">
+                                                <label class="form-check-label small text-muted" for="agencyCheck">
+                                                    This contact is an International Travel Assistance Agency / Consulate Desk
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Authority Notice -->
+                            <div id="authorityNotice" class="d-none mt-4 p-3 bg-warning-subtle rounded-4 text-warning-emphasis">
+                                <i class="bi bi-info-circle-fill me-1"></i>
+                                <strong>Authority Verification Notice:</strong> Authority registrations require administrator approval before crowd-management features become active.
+                            </div>
+
+                            <div class="d-grid mt-4">
+                                <button type="submit" class="btn btn-danger btn-lg rounded-pill fw-bold shadow-sm py-2">
+                                    Create Account <i class="bi bi-check-circle ms-1"></i>
+                                </button>
+                            </div>
+                        </form>
+
+                        <div class="text-center mt-4">
+                            <span class="text-muted small">Already have an account?</span>
+                            <a href="{{ url_for('auth.login') }}" class="fw-bold text-danger text-decoration-none small ms-1">Sign In</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleRoleFields(role) {
+    const touristFields = document.getElementById('touristFields');
+    const authorityNotice = document.getElementById('authorityNotice');
+    if (role === 'authority') {
+        touristFields.classList.add('d-none');
+        authorityNotice.classList.remove('d-none');
+    } else {
+        touristFields.classList.remove('d-none');
+        authorityNotice.classList.add('d-none');
+    }
+}
+</script>
+{% endblock %}
+

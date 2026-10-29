@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}My Saved Collections — TravelTech{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="mb-4">
+        <h3 class="fw-bold mb-1 text-dark"><i class="bi bi-heart-fill text-danger me-2"></i>Saved Destinations & Stories</h3>
+        <p class="text-muted small">Your personal bucket list of cultural heritage sites and saved audio stories</p>
+    </div>
+
+    <!-- Saved Destinations -->
+    <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-geo-alt-fill text-primary me-2"></i>Saved Places ({{ saved_destinations|length }})</h5>
+    {% if saved_destinations %}
+    <div class="row g-4 mb-5">
+        {% for dest in saved_destinations %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card travel-card h-100">
+                <div class="card-img-wrapper">
+                    <div class="image-fallback" aria-hidden="true"><i class="bi bi-image"></i></div>
+                    {% if dest.display_image_url %}<img src="{{ dest.display_image_url }}" class="card-img-top" alt="{{ dest.name }}" onerror="this.classList.add('image-failed')">{% endif %}
+                    <div class="badge-overlay-top-left">
+                        <span class="badge badge-crowd-{{ dest.effective_crowd_status|lower }} px-3 py-2 rounded-pill">
+                            {{ dest.effective_crowd_status }}
+                        </span>
+                    </div>
+                    <div class="badge-overlay-top-right">
+                        <button class="btn btn-sm btn-light rounded-circle shadow-sm" aria-label="Remove {{ dest.name }} from saved places" onclick="toggleSaveDestination({{ dest.id }}, this).then(data => { if (data && !data.saved) location.reload(); })">
+                            <i class="bi bi-heart-fill text-danger"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-4 d-flex flex-column">
+                    <h5 class="fw-bold mb-2 text-dark">{{ dest.name }}</h5>
+                    <p class="text-muted small mb-3 flex-grow-1">{{ dest.description[:110] }}...</p>
+                    <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                        <span class="small text-muted">{{ dest.city.name }}</span>
+                        <a href="{{ url_for('tourist.dashboard', city_id=dest.city_id) }}" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                            View on Map
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card border-0 shadow-sm rounded-4 p-5 text-center bg-white mb-5">
+        <div class="text-muted fs-1 mb-2"><i class="bi bi-bookmark-heart"></i></div>
+        <h6 class="fw-bold">No saved places yet</h6>
+        <p class="text-muted small mb-3">Tap the heart icon on any destination card to save it for quick reference.</p>
+        <div>
+            <a href="{{ url_for('tourist.dashboard') }}" class="btn btn-outline-danger rounded-pill px-4 btn-sm">Explore Attractions</a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Saved Stories -->
+    <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-mic-fill text-danger me-2"></i>Saved Cultural Stories ({{ saved_stories|length }})</h5>
+    {% if saved_stories %}
+    <div class="row g-4">
+        {% for story in saved_stories %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card travel-card h-100 p-4">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="badge bg-light text-muted border">{{ story.destination.name }}</span>
+                    <button class="btn btn-sm btn-light rounded-circle shadow-sm" aria-label="Remove {{ story.title }} from saved stories" onclick="toggleSaveStory({{ story.id }}, this).then(data => { if (data && !data.saved) location.reload(); })">
+                        <i class="bi bi-bookmark-fill text-primary"></i>
+                    </button>
+                </div>
+                <h5 class="fw-bold mb-2 text-dark">{{ story.title }}</h5>
+                <p class="text-muted small mb-3 flex-grow-1">{{ story.content[:130] }}...</p>
+                <div class="d-grid mt-2">
+                    <button class="btn btn-sm btn-danger rounded-pill fw-bold" onclick="window.travelTTS.speak('{{ (story.audio_text or story.content)|replace("'", "\\'") }}', '{{ story.title|replace("'", "\\'") }}')">
+                        <i class="bi bi-play-fill me-1"></i>Listen to Story
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card border-0 shadow-sm rounded-4 p-5 text-center bg-white">
+        <div class="text-muted fs-1 mb-2"><i class="bi bi-headphones"></i></div>
+        <h6 class="fw-bold">No saved stories yet</h6>
+        <p class="text-muted small mb-3">Bookmark stories to listen to them during your trip.</p>
+        <div>
+            <a href="{{ url_for('tourist.dashboard') }}" class="btn btn-outline-danger rounded-pill px-4 btn-sm">Browse Stories</a>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

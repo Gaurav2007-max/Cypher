@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}Authority Console — Crowd Management & Alert Dispatch{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <span class="badge bg-primary rounded-pill px-3 py-1 mb-1">Tourism Authority Command</span>
+            <h3 class="fw-bold mb-0 text-dark"><i class="bi bi-shield-check text-primary me-2"></i>Crowd Management & Alerts</h3>
+            <div class="text-muted small">Update live crowd status, configure alert expiration timers, and review tourist reports</div>
+        </div>
+        <div>
+            <span class="badge bg-light text-dark border p-2">
+                <i class="bi bi-person-badge me-1"></i>Logged in as: <strong>{{ user.username }}</strong>
+            </span>
+        </div>
+    </div>
+
+    <!-- Active High-Crowd Alerts Overview Bar -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+        <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Active Crowd Alerts ({{ active_alerts|length }})</h5>
+        {% if active_alerts %}
+        <div class="row g-3">
+            {% for dest in active_alerts %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card border border-danger-subtle rounded-4 p-3 bg-danger-subtle bg-opacity-25 h-100">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="fw-bold mb-0 text-dark">{{ dest.name }}</h6>
+                        <span class="badge badge-crowd-{{ dest.effective_crowd_status|lower }}">{{ dest.effective_crowd_status }}</span>
+                    </div>
+                    <div class="small text-muted mb-2">
+                        <i class="bi bi-geo-alt me-1"></i>{{ dest.city.name }} • 
+                        <i class="bi bi-clock-history me-1"></i>Expires: {{ dest.crowd_expires_at.strftime('%H:%M UTC') if dest.crowd_expires_at else 'Manual' }}
+                    </div>
+                    <p class="small text-muted mb-3">{{ dest.crowd_explanation or 'Heavy visitor congestion.' }}</p>
+                    <div class="d-flex gap-2 mt-auto">
+                        <form method="POST" action="{{ url_for('authority.clear_alert', dest_id=dest.id) }}" class="w-100">
+                            <button type="submit" class="btn btn-sm btn-outline-success w-100 rounded-pill fw-semibold">
+                                <i class="bi bi-check-circle me-1"></i>Clear Alert (Set Normal)
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="p-3 bg-light rounded-4 text-center text-muted small">
+            <i class="bi bi-check-all text-success fs-4 d-block mb-1"></i>
+            No destinations are currently marked as Crowded or Overcrowded. All registered locations operating normally.
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Search & Update Crowd Status Section -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-sliders text-dark me-2"></i>Update Destination Crowd Status</h5>
+            <!-- Search & Filter Form -->
+            <form method="GET" action="{{ url_for('authority.dashboard') }}" class="d-flex gap-2">
+                <select name="city_id" class="form-select form-select-sm rounded-pill" onchange="this.form.submit()">
+                    <option value="">All Cities</option>
+                    {% for c in cities %}
+                    <option value="{{ c.id }}" {% if city_filter == c.id %}selected{% endif %}>{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+                <input type="text" name="q" class="form-control form-control-sm rounded-pill px-3" placeholder="Search destination..." value="{{ search_query }}">
+                <button type="submit" class="btn btn-sm btn-dark rounded-pill px-3">Search</button>
+            </form>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Destination</th>
+                        <th>City</th>
+                        <th>Current Status</th>
+                        <th>Expires In</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in destinations %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                {% if d.display_image_url %}<img src="{{ d.display_image_url }}" class="rounded-3" style="width: 44px; height: 44px; object-fit: cover;" alt="" onerror="this.hidden=true">{% else %}<span class="rounded-3 bg-light d-inline-flex align-items-center justify-content-center text-secondary" style="width:44px;height:44px"><i class="bi bi-image"></i></span>{% endif %}
+                                <div>
+                                    <div class="fw-bold text-dark">{{ d.name }}</div>
+                                    <div class="small text-muted">{{ d.category|title }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>{{ d.city.name }}</td>
+                        <td>
+                            <span class="badge badge-crowd-{{ d.effective_crowd_status|lower }}">
+                                {{ d.effective_crowd_status }}
+                            </span>
+                        </td>
+                        <td class="small text-muted">
+                            {% if d.crowd_expires_at %}
+                            {{ d.crowd_expires_at.strftime('%Y-%m-%d %H:%M') }}
+                            {% else %}
+                            --
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="openUpdateModal({{ d.id }}, '{{ d.name|replace("'", "\\'") }}', '{{ d.effective_crowd_status }}', '{{ (d.crowd_explanation or "")|replace("'", "\\'") }}')">
+                                <i class="bi bi-pencil-square me-1"></i>Change Status
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Update Modal -->
+    <div class="modal fade" id="updateCrowdModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0">Update Crowd Status</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <h6 id="modalDestName" class="text-primary mb-3"></h6>
+
+                <form method="POST" action="{{ url_for('authority.update_crowd') }}">
+                    <input type="hidden" name="destination_id" id="modalDestId">
+                    
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">New Crowd Level</label>
+                        <select name="status" id="modalStatusSelect" class="form-select rounded-3" required>
+                            <option value="Normal">Normal (Comfortable Capacity)</option>
+                            <option value="Moderate">Moderate (Steady Influx)</option>
+                            <option value="Crowded">Crowded (Lines Forming)</option>
+                            <option value="Overcrowded">Overcrowded (Capacity Exceeded / Traffic Jam)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Alert Validity Duration (Auto-Expires)</label>
+                        <select name="duration_minutes" class="form-select rounded-3">
+                            <option value="30">30 Minutes</option>
+                            <option value="60">1 Hour</option>
+                            <option value="120" selected>2 Hours (Standard)</option>
+                            <option value="240">4 Hours</option>
+                            <option value="720">12 Hours</option>
+                            <option value="1440">24 Hours</option>
+                        </select>
+                        <div class="small text-muted mt-1">Alerts automatically revert to Normal after expiration unless renewed.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Explanation / Visitor Advisory (Optional)</label>
+                        <textarea name="explanation" id="modalExplanation" class="form-control rounded-3" rows="3" placeholder="e.g. Festival celebrations, parking lot full, expect 30 min delays."></textarea>
+                    </div>
+
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary rounded-pill fw-bold py-2">
+                            Commit Status Update
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Two-Column Section: Crowd History & Tourist Feedback -->
+    <div class="row g-4">
+        <!-- Previous Changes History Log -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100 bg-white">
+                <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-clock-history text-secondary me-2"></i>Crowd Update Audit Trail</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Destination</th>
+                                <th>Status Change</th>
+                                <th>Officer</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for rec in recent_history %}
+                            <tr>
+                                <td class="small text-muted">{{ rec.created_at.strftime('%m-%d %H:%M') }}</td>
+                                <td class="small fw-semibold">{{ rec.destination.name[:18] }}..</td>
+                                <td>
+                                    <span class="badge badge-crowd-{{ rec.status|lower }}">{{ rec.status }}</span>
+                                </td>
+                                <td class="small text-muted">{{ rec.updater.username if rec.updater else 'System' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Relevant Tourist Reports -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100 bg-white">
+                <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-chat-left-dots-fill text-warning me-2"></i>Recent Tourist Field Reports</h5>
+                {% if feedback_reports %}
+                <div class="list-group list-group-flush">
+                    {% for rep in feedback_reports %}
+                    <div class="list-group-item px-0 py-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="badge bg-light text-dark border">{{ rep.feedback_type|replace('_', ' ')|title }}</span>
+                            <span class="small text-muted">{{ rep.created_at.strftime('%m-%d %H:%M') }}</span>
+                        </div>
+                        <div class="fw-semibold text-dark">{{ rep.destination.name if rep.destination else 'General' }}</div>
+                        <p class="small text-muted mb-0">{{ rep.description }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted small">No pending tourist feedback.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function openUpdateModal(id, name, currentStatus, currentExplanation) {
+    document.getElementById('modalDestId').value = id;
+    document.getElementById('modalDestName').innerText = name;
+    document.getElementById('modalStatusSelect').value = currentStatus;
+    document.getElementById('modalExplanation').value = currentExplanation || '';
+    const modal = new bootstrap.Modal(document.getElementById('updateCrowdModal'));
+    modal.show();
+}
+</script>
+{% endblock %}

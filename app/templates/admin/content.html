@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Manage {{ kind|title }} — TravelTech{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-4">
+        <div>
+            <a href="{{ url_for('admin.dashboard') }}" class="small text-decoration-none">← Admin Console</a>
+            <h1 class="h3 fw-bold mt-2">Manage {{ kind|title }}</h1>
+            <p class="text-muted mb-0">Entries are informational. Mark only data with a checked source as verified.</p>
+        </div>
+        <span class="badge bg-dark rounded-pill">{{ items|length }} entries</span>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4 p-3">
+                <h2 class="h5 fw-bold">Existing entries</h2>
+                {% if items %}
+                <div class="list-group list-group-flush">
+                    {% for entry in items %}
+                    <div class="list-group-item px-0 d-flex justify-content-between align-items-center gap-2">
+                        <div>
+                            <a class="fw-semibold" href="{{ url_for('admin.manage_content', kind=kind, id=entry.id) }}">
+                                {{ entry.name if entry.name is defined else entry.title }}
+                            </a>
+                            <div class="small text-muted">
+                                {% if entry.city is defined and entry.city %}{{ entry.city.name }}{% elif entry.destination is defined and entry.destination %}{{ entry.destination.name }}{% endif %}
+                                · {{ 'Active' if entry.is_active else 'Hidden' }}
+                            </div>
+                        </div>
+                        <form method="POST" action="{{ url_for('admin.toggle_content', kind=kind, item_id=entry.id) }}">
+                            <button class="btn btn-sm btn-outline-secondary rounded-pill" type="submit">{{ 'Hide' if entry.is_active else 'Show' }}</button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No entries yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <form method="POST" class="card border-0 shadow-sm rounded-4 p-4">
+                <input type="hidden" name="id" value="{{ item.id if item else '' }}">
+                <h2 class="h5 fw-bold">{{ 'Edit' if item else 'Add' }} {{ kind|title }}</h2>
+                {% if kind in ('destinations', 'activities', 'cuisine') %}
+                <label class="form-label small fw-semibold">City</label>
+                <select class="form-select mb-3" name="city_id" required>
+                    {% for city in cities %}<option value="{{ city.id }}" {% if item and item.city_id == city.id %}selected{% endif %}>{{ city.name }}</option>{% endfor %}
+                </select>
+                {% endif %}
+
+                {% if kind == 'destinations' %}
+                <label class="form-label small fw-semibold">Name</label><input class="form-control mb-3" name="name" required value="{{ item.name if item else '' }}">
+                <label class="form-label small fw-semibold">Category</label><input class="form-control mb-3" name="category" value="{{ item.category if item else 'heritage' }}">
+                <label class="form-label small fw-semibold">Description</label><textarea class="form-control mb-3" name="description" required>{{ item.description if item else '' }}</textarea>
+                <div class="row"><div class="col"><label class="form-label small fw-semibold">Latitude</label><input class="form-control mb-3" type="number" step="any" name="latitude" required value="{{ item.latitude if item else '' }}"></div><div class="col"><label class="form-label small fw-semibold">Longitude</label><input class="form-control mb-3" type="number" step="any" name="longitude" required value="{{ item.longitude if item else '' }}"></div></div>
+                <label class="form-label small fw-semibold">Image URL</label><input class="form-control mb-3" type="url" name="image_url" value="{{ item.image_url if item and item.image_url else '' }}">
+                <label class="form-label small fw-semibold">Historical significance</label><textarea class="form-control mb-3" name="historical_significance">{{ item.historical_significance if item and item.historical_significance else '' }}</textarea>
+                <label class="form-label small fw-semibold">Listed hours (source required)</label><input class="form-control mb-3" name="opening_hours" value="{{ item.opening_hours if item and item.opening_hours else '' }}">
+                <label class="form-label small fw-semibold">Accessibility information</label><input class="form-control mb-3" name="accessibility_info" value="{{ item.accessibility_info if item and item.accessibility_info else '' }}">
+                <label class="form-label small fw-semibold">Source attribution</label><input class="form-control mb-3" name="source_attribution" value="{{ item.source_attribution if item else 'Unverified sample data' }}">
+                <div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="is_hidden_gem" {% if item and item.is_hidden_gem %}checked{% endif %}><label class="form-check-label">Hidden gem</label></div>
+                {% elif kind == 'stories' %}
+                <label class="form-label small fw-semibold">Destination</label><select class="form-select mb-3" name="destination_id" required>{% for destination in destinations %}<option value="{{ destination.id }}" {% if item and item.destination_id == destination.id %}selected{% endif %}>{{ destination.name }} — {{ destination.city.name }}</option>{% endfor %}</select>
+                <label class="form-label small fw-semibold">Title</label><input class="form-control mb-3" name="title" required value="{{ item.title if item else '' }}">
+                <label class="form-label small fw-semibold">Story content</label><textarea class="form-control mb-3" name="content" rows="5" required>{{ item.content if item else '' }}</textarea>
+                <label class="form-label small fw-semibold">Speech text (optional)</label><textarea class="form-control mb-3" name="audio_text">{{ item.audio_text if item and item.audio_text else '' }}</textarea>
+                <label class="form-label small fw-semibold">Language</label><input class="form-control mb-3" name="language" value="{{ item.language if item else 'en' }}">
+                <label class="form-label small fw-semibold">Image URL</label><input class="form-control mb-3" type="url" name="image_url" value="{{ item.image_url if item and item.image_url else '' }}">
+                {% elif kind == 'activities' %}
+                <label class="form-label small fw-semibold">Name</label><input class="form-control mb-3" name="name" required value="{{ item.name if item else '' }}">
+                <label class="form-label small fw-semibold">Optional destination</label><select class="form-select mb-3" name="destination_id"><option value="">None</option>{% for destination in destinations %}<option value="{{ destination.id }}" {% if item and item.destination_id == destination.id %}selected{% endif %}>{{ destination.name }}</option>{% endfor %}</select>
+                <label class="form-label small fw-semibold">Category</label><input class="form-control mb-3" name="category" value="{{ item.category if item else 'experience' }}">
+                <label class="form-label small fw-semibold">Description</label><textarea class="form-control mb-3" name="description" required>{{ item.description if item else '' }}</textarea>
+                <label class="form-label small fw-semibold">Price estimate</label><input class="form-control mb-3" name="price_range" value="{{ item.price_range if item else 'Unverified' }}">
+                <label class="form-label small fw-semibold">Price source / caveat</label><input class="form-control mb-3" name="price_source" value="{{ item.price_source if item else 'Sample data; verify locally' }}">
+                <label class="form-label small fw-semibold">Typical duration</label><input class="form-control mb-3" name="typical_duration" value="{{ item.typical_duration if item else '' }}">
+                <label class="form-label small fw-semibold">Recommended time</label><input class="form-control mb-3" name="recommended_time" value="{{ item.recommended_time if item else '' }}">
+                <label class="form-label small fw-semibold">Safety precautions</label><textarea class="form-control mb-3" name="safety_precautions">{{ item.safety_precautions if item and item.safety_precautions else '' }}</textarea>
+                {% else %}
+                <label class="form-label small fw-semibold">Name</label><input class="form-control mb-3" name="name" required value="{{ item.name if item else '' }}">
+                <label class="form-label small fw-semibold">Description</label><textarea class="form-control mb-3" name="description" required>{{ item.description if item else '' }}</textarea>
+                <label class="form-label small fw-semibold">Cultural background</label><textarea class="form-control mb-3" name="cultural_background">{{ item.cultural_background if item and item.cultural_background else '' }}</textarea>
+                <label class="form-label small fw-semibold">Dietary tags</label><input class="form-control mb-3" name="dietary_tags" value="{{ item.dietary_tags if item else '' }}">
+                <label class="form-label small fw-semibold">Allergens (verified or ask vendor)</label><input class="form-control mb-3" name="allergen_info" value="{{ item.allergen_info if item else 'Not verified; ask the vendor' }}">
+                <label class="form-label small fw-semibold">Price estimate</label><input class="form-control mb-3" name="price_range" value="{{ item.price_range if item else 'Unverified' }}">
+                <label class="form-label small fw-semibold">Suggested spots (not availability)</label><input class="form-control mb-3" name="famous_spots" value="{{ item.famous_spots if item and item.famous_spots else '' }}">
+                <label class="form-label small fw-semibold">Image URL</label><input class="form-control mb-3" type="url" name="image_url" value="{{ item.image_url if item and item.image_url else '' }}">
+                <label class="form-label small fw-semibold">Data status</label><select class="form-select mb-3" name="verified_status">{% for state in ['sample','community','verified'] %}<option value="{{ state }}" {% if item and item.verified_status == state %}selected{% endif %}>{{ state|title }}</option>{% endfor %}</select>
+                <label class="form-label small fw-semibold">Rating (only if sourced)</label><input class="form-control mb-3" type="number" min="0" max="5" step="0.1" name="user_rating" value="{{ item.user_rating if item and item.user_rating is not none else '' }}">
+                {% endif %}
+                <button class="btn btn-primary rounded-pill fw-bold" type="submit">Save {{ kind|title }}</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+
+{% block title %}Safety Center & Emergency SOS — TravelTech{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h3 class="fw-bold mb-1 text-dark"><i class="bi bi-shield-check text-success me-2"></i>Tourist Safety Center</h3>
+            <p class="text-muted small mb-0">Emergency SOS, safety check-in countdown, impact fall sensing, and rolling location breadcrumbs</p>
+        </div>
+        <a href="{{ url_for('auth.profile') }}" class="btn btn-outline-secondary rounded-pill px-3 btn-sm">
+            <i class="bi bi-person-gear me-1"></i>Emergency Contacts
+        </a>
+    </div>
+
+    <!-- Main SOS Hero Banner -->
+    <div class="card border-0 shadow-lg rounded-5 overflow-hidden p-4 mb-4 text-center text-white" style="
+        background: linear-gradient(135deg, #FF385C 0%, #D70466 100%);
+    ">
+        <div class="py-4">
+            <button type="button" class="sos-hero-trigger d-inline-flex align-items-center justify-content-center bg-white text-danger rounded-circle p-4 mb-3 shadow-lg radar-pulse" data-sos-trigger aria-label="Start emergency SOS countdown" onclick="window.travelSafety.triggerManualSOS()">
+                <i class="bi bi-shield-fill-exclamation fs-1"></i>
+            </button>
+            <h2 class="fw-extrabold mb-1">EMERGENCY SOS ASSISTANCE</h2>
+            <p class="lead opacity-90 mx-auto" style="max-width: 580px; font-size: 1rem;">
+                Start an SOS alert with a 30-second cancellation window. If not cancelled, your emergency contact will receive an email with your available location.
+            </p>
+            <div class="d-flex justify-content-center gap-2 mt-3">
+                <button id="manualSosBtn" data-sos-trigger class="btn btn-light btn-lg rounded-pill fw-bold px-5 text-danger shadow" onclick="window.travelSafety.triggerManualSOS()">
+                    <i class="bi bi-broadcast me-2"></i>START SOS (30s CANCEL)
+                </button>
+            </div>
+            <div class="small opacity-75 mt-3">
+                <i class="bi bi-info-circle me-1"></i>Email delivery depends on the configured SMTP service. The page will report if an alert is recorded but email delivery fails.
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Check-in Timer Widget -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100 bg-white">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-clock-history text-primary me-2"></i>Safety Check-in Timer</h5>
+                    <span class="badge bg-primary-subtle text-primary">Automated Reminder</span>
+                </div>
+                <p class="text-muted small">
+                    Going on a solo trek or exploring an unfamiliar street? Set a custom timer. When it expires, you will be prompted to confirm you are safe; if you don't respond, an alert will be sent.
+                </p>
+
+                {% if active_checkin and not active_checkin.is_expired %}
+                <div class="p-4 bg-light rounded-4 text-center my-auto border">
+                    <div class="text-uppercase text-muted fw-bold small mb-1">Time Remaining to Check In</div>
+                    <div id="checkinCountdownDisplay" class="display-4 fw-bold text-primary mb-3">
+                        {{ "%02d:%02d"|format(active_checkin.remaining_seconds // 60, active_checkin.remaining_seconds % 60) }}
+                    </div>
+                    <div class="d-flex justify-content-center gap-2">
+                        <button class="btn btn-success rounded-pill px-4 fw-bold shadow-sm" onclick="window.travelSafety.confirmCheckInSafe()">
+                            <i class="bi bi-check-circle-fill me-1"></i>I Am Safe (Check In)
+                        </button>
+                    </div>
+                </div>
+                {% else %}
+                <div class="p-3 bg-light rounded-4 my-auto border">
+                    <label class="form-label small fw-bold text-dark mb-2">Set Timer Duration:</label>
+                    <div class="row g-2">
+                        <div class="col-6 col-sm-3">
+                            <button class="btn btn-outline-danger w-100 rounded-pill py-2 fw-semibold" onclick="window.travelSafety.startCheckIn(1, '30s Fast Demo')">
+                                30s Demo
+                            </button>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <button class="btn btn-outline-dark w-100 rounded-pill py-2 fw-semibold" onclick="window.travelSafety.startCheckIn(15, 'Short walk')">
+                                15 Mins
+                            </button>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <button class="btn btn-outline-dark w-100 rounded-pill py-2 fw-semibold" onclick="window.travelSafety.startCheckIn(30, 'Transit commute')">
+                                30 Mins
+                            </button>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <button class="btn btn-outline-dark w-100 rounded-pill py-2 fw-semibold" onclick="window.travelSafety.startCheckIn(60, 'Nature trek')">
+                                1 Hour
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="small text-muted border-top pt-3 mt-3">
+                    <i class="bi bi-shield-lock me-1"></i>Failure to check in does not automatically diagnose an injury, but alerts your emergency contact to confirm your safety.
+                </div>
+            </div>
+        </div>
+
+        <!-- Potential Fall Detection Sensor -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100 bg-white">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-activity text-danger me-2"></i>Fall & Impact Detection</h5>
+                    <span class="badge bg-secondary-subtle text-secondary">Opt-in Motion Heuristic</span>
+                </div>
+                <p class="text-muted small">
+                    With your profile consent and device permission, listens for a sharp motion impact and offers a 15-second chance to cancel. This heuristic can miss falls or mistake other impacts for a fall; it is not medical or guaranteed fall detection.
+                </p>
+
+                <div class="p-3 bg-light rounded-4 my-auto border text-center">
+                    <div class="d-inline-flex p-3 bg-white rounded-circle shadow-sm mb-2 text-danger">
+                        <i class="bi bi-phone-vibrate fs-2"></i>
+                    </div>
+                    <div class="fw-bold text-dark">Device motion sensor</div>
+                    <div id="motionSensorStatus" class="text-muted small mb-3" role="status" aria-live="polite" data-sensor-consent="{{ 'true' if sensor_consent else 'false' }}">
+                        {% if sensor_consent %}Motion sensing is off until you enable it here.{% else %}Motion sensing is off. Enable sensor consent in your profile to continue.{% endif %}
+                    </div>
+                    {% if sensor_consent %}
+                    <button id="enableMotionDetection" data-sensor-consent="true" class="btn btn-outline-success rounded-pill px-4 fw-bold shadow-sm mb-3">
+                        <i class="bi bi-phone me-1"></i>Enable motion sensing
+                    </button>
+                    {% else %}
+                    <a href="{{ url_for('auth.profile') }}" class="btn btn-outline-secondary rounded-pill px-4 fw-bold shadow-sm mb-3">
+                        <i class="bi bi-gear me-1"></i>Review sensor consent in profile
+                    </a>
+                    {% endif %}
+
+                    <!-- Simulate Fall Button for Demo & Evaluation -->
+                    <button class="btn btn-outline-danger rounded-pill px-4 fw-bold shadow-sm" onclick="window.travelSafety.promptFallAlert()">
+                        <i class="bi bi-play-circle me-1"></i>Simulate Sudden Fall Incident
+                    </button>
+                </div>
+
+                <div class="small text-muted border-top pt-3 mt-3">
+                    <i class="bi bi-exclamation-circle me-1"></i>Sensor access requires HTTPS (or localhost), profile consent, a supported browser, and your action above. Browsers may stop sensing in the background. Manual SOS is always available.
+                </div>
+            </div>
+        </div>
+
+        <!-- 10-Minute Rolling Location History Trail -->
+        <div class="col-12">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <div>
+                        <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-geo-alt-fill text-success me-2"></i>10-Minute Rolling Location History</h5>
+                        <p class="text-muted small mb-0">Temporary breadcrumb trail retained strictly for 10 minutes to assist responders during emergency situations</p>
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="refreshLocationTrail()">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Refresh Trail
+                    </button>
+                </div>
+
+                <div id="safetyMap" style="height: 320px; width: 100%;" class="mb-3"></div>
+
+                <div id="trailSamplesList" class="table-responsive">
+                    <table class="table table-sm table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>Recorded Time (UTC)</th>
+                                <th>Latitude</th>
+                                <th>Longitude</th>
+                                <th>Accuracy</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trailTableBody">
+                            <tr>
+                                <td colspan="5" class="text-center py-3 text-muted">
+                                    <span class="spinner-border spinner-border-sm me-2"></span>Loading recent 10-minute location samples...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="small text-muted border-top pt-3 mt-3">
+                    <i class="bi bi-eye-slash-fill me-1 text-danger"></i><strong>Privacy Safeguard:</strong> Samples older than 10 minutes are permanently purged automatically during normal operation. Only in active emergency SOS cases is an incident snapshot retained for emergency responders.
+                </div>
+            </div>
+        </div>
+
+        <!-- Emergency Contact Card -->
+        <div class="col-12">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+                <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-person-lines-fill text-primary me-2"></i>Configured Emergency Contact</h5>
+                {% if contact %}
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <div class="small text-muted">Contact Name</div>
+                        <div class="fw-bold text-dark">{{ contact.name }}</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="small text-muted">Email (For SOS Alerts)</div>
+                        <div class="fw-bold text-dark">{{ contact.email }}</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="small text-muted">Phone</div>
+                        <div class="fw-bold text-dark">{{ contact.phone or 'Not specified' }}</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="small text-muted">Contact Type</div>
+                        <div>
+                            {% if contact.is_agency %}
+                            <span class="badge bg-primary text-white"><i class="bi bi-building me-1"></i>Travel Agency / Consulate</span>
+                            {% else %}
+                            <span class="badge bg-light text-dark border">{{ contact.relationship or 'Personal Contact' }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-warning mb-0">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>No emergency contact registered yet. <a href="{{ url_for('auth.profile') }}" class="alert-link">Add an emergency contact</a> to ensure alerts reach your loved ones or agency.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let safetyMap = null;
+let trailPolyline = null;
+let trailMarkers = [];
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize Safety Map
+    safetyMap = L.map('safetyMap').setView([28.4089, 77.3178], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+    }).addTo(safetyMap);
+
+    refreshLocationTrail();
+});
+
+function refreshLocationTrail() {
+    fetch('/api/safety/location-history')
+        .then(r => r.json())
+        .then(data => {
+            const tbody = document.getElementById('trailTableBody');
+            const trail = data.trail || [];
+
+            if (trail.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-3 text-muted">No location samples recorded in the last 10 minutes yet. (Continuous tracking records points every 15 seconds).</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            const latLngs = [];
+
+            // Clear old markers
+            trailMarkers.forEach(m => safetyMap.removeLayer(m));
+            trailMarkers = [];
+            if (trailPolyline) safetyMap.removeLayer(trailPolyline);
+
+            trail.forEach((sample, index) => {
+                const pt = [sample.latitude, sample.longitude];
+                latLngs.push(pt);
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${sample.recorded_at.replace('T', ' ').substring(0, 19)}</td>
+                    <td>${sample.latitude.toFixed(6)}</td>
+                    <td>${sample.longitude.toFixed(6)}</td>
+                    <td>±${Math.round(sample.accuracy || 15)}m</td>
+                `;
+                tbody.appendChild(tr);
+
+                const marker = L.circleMarker(pt, {
+                    radius: 5,
+                    fillColor: '#FF5A5F',
+                    color: '#FFFFFF',
+                    weight: 2,
+                    fillOpacity: 0.9
+                }).addTo(safetyMap);
+                marker.bindPopup(`Sample #${index+1} at ${sample.recorded_at}`);
+                trailMarkers.push(marker);
+            });
+
+            if (latLngs.length > 1) {
+                trailPolyline = L.polyline(latLngs, {
+                    color: '#FF5A5F',
+                    weight: 4,
+                    dashArray: '4, 6'
+                }).addTo(safetyMap);
+                safetyMap.fitBounds(trailPolyline.getBounds().pad(0.2));
+            } else if (latLngs.length === 1) {
+                safetyMap.setView(latLngs[0], 14);
+            }
+        })
+        .catch(e => {
+            document.getElementById('trailTableBody').innerHTML = `<tr><td colspan="5" class="text-danger text-center">Failed to load history: ${e.message}</td></tr>`;
+        });
+}
+</script>
+{% endblock %}

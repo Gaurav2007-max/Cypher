@@ -1,0 +1,901 @@
+/* TravelTech - Smart Cultural Exploration & Tourist Safety Platform Styles */
+
+:root {
+    --primary: #66784C;
+    --primary-hover: #52613A;
+    --primary-light: #EDF1E6;
+    --secondary: #77876A;
+    --secondary-dark: #5B6B50;
+    --accent: #B17B51;
+    --dark: #252C22;
+    --gray-bg: #F5F6EF;
+    --bs-primary: #66784C;
+    --bs-primary-rgb: 102, 120, 76;
+    --bs-success: #5C7950;
+    --bs-success-rgb: 92, 121, 80;
+    --bs-link-color: #52613A;
+    --bs-link-hover-color: #3F4E2D;
+    --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    --hover-shadow: 0 18px 40px rgba(0, 0, 0, 0.16);
+    --border-radius-lg: 20px;
+    --border-radius-md: 14px;
+}
+
+body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    background-color: var(--gray-bg);
+    color: #2D3748;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+.text-primary {
+    color: var(--primary) !important;
+}
+
+.bg-primary {
+    background-color: var(--primary) !important;
+}
+
+.bg-primary-subtle {
+    background-color: var(--primary-light) !important;
+}
+
+.btn-primary {
+    --bs-btn-color: #fff;
+    --bs-btn-bg: var(--primary);
+    --bs-btn-border-color: var(--primary);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--primary-hover);
+    --bs-btn-hover-border-color: var(--primary-hover);
+    --bs-btn-active-bg: var(--primary-hover);
+    --bs-btn-active-border-color: var(--primary-hover);
+    --bs-btn-disabled-bg: var(--primary);
+    --bs-btn-disabled-border-color: var(--primary);
+}
+
+.btn-outline-primary {
+    --bs-btn-color: var(--primary-hover);
+    --bs-btn-border-color: var(--primary);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--primary);
+    --bs-btn-hover-border-color: var(--primary);
+    --bs-btn-active-bg: var(--primary-hover);
+    --bs-btn-active-border-color: var(--primary-hover);
+}
+
+html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 5.5rem;
+}
+
+main {
+    min-width: 0;
+}
+
+.container,
+.container-fluid {
+    min-width: 0;
+}
+
+/* Glassmorphism Navigation */
+.navbar-custom {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.navbar-custom .nav-link {
+    border-radius: 999px;
+    transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.navbar-custom .nav-link:hover,
+.navbar-custom .nav-link:focus-visible {
+    background: var(--primary-light);
+    color: var(--primary-hover) !important;
+}
+
+.brand-logo {
+    font-weight: 800;
+    font-size: 1.45rem;
+    background: linear-gradient(135deg, #66784C 0%, #40573A 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Animated Floating Elements */
+@keyframes floatSlow {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-10px) rotate(2deg); }
+}
+
+@keyframes floatReverse {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(8px) rotate(-2deg); }
+}
+
+.anim-float {
+    animation: floatSlow 5s ease-in-out infinite;
+}
+
+.anim-float-reverse {
+    animation: floatReverse 6s ease-in-out infinite;
+}
+
+/* Radar Pulse Animation for SOS */
+@keyframes radarPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 90, 95, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 25px rgba(255, 90, 95, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 90, 95, 0);
+    }
+}
+
+.radar-pulse {
+    animation: radarPulse 2s infinite;
+}
+
+/* Crowd Badges & Status */
+.badge-crowd-normal {
+    background: #E6F4EA;
+    color: #137333;
+    border: 1px solid #A8DAB5;
+    font-weight: 600;
+}
+
+.badge-crowd-moderate {
+    background: #FEF7E0;
+    color: #B06000;
+    border: 1px solid #FCD374;
+    font-weight: 600;
+}
+
+.badge-crowd-crowded {
+    background: #FFF0E8;
+    color: #D9381E;
+    border: 1px solid #FFAB91;
+    font-weight: 700;
+}
+
+.badge-crowd-overcrowded {
+    background: #FCE8E6;
+    color: #C5221F;
+    border: 1px solid #F6AEA9;
+    font-weight: 800;
+    animation: pulseBadge 1.5s infinite;
+}
+
+@keyframes pulseBadge {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* Visual Travel Cards */
+.travel-card {
+    border: none;
+    border-radius: var(--border-radius-lg);
+    background: #FFFFFF;
+    overflow: hidden;
+    box-shadow: var(--card-shadow);
+    transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+    position: relative;
+}
+
+.travel-card .card-body {
+    min-width: 0;
+}
+
+.travel-card:hover {
+    transform: translateY(-6px);
+    box-shadow: var(--hover-shadow);
+}
+
+.travel-card .card-img-wrapper {
+    position: relative;
+    height: 220px;
+    overflow: hidden;
+    background: linear-gradient(135deg, #e6eadc, #cbd5ba 52%, #e8dccb);
+}
+
+.image-fallback {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: rgba(70, 91, 50, 0.62);
+    font-size: 2.5rem;
+}
+
+.travel-card .card-img-top {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.travel-card .card-img-top.image-failed {
+    display: none;
+}
+
+.travel-card:hover .card-img-top {
+    transform: scale(1.08);
+}
+
+.badge-overlay-top-left {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    z-index: 2;
+}
+
+.badge-overlay-top-right {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 2;
+}
+
+/* City Hero Showcase */
+.city-hero {
+    position: relative;
+    border-radius: 24px;
+    overflow: visible;
+    min-height: 280px;
+    display: flex;
+    align-items: flex-end;
+    background-size: cover;
+    background-position: center;
+    background-color: #40573A;
+    background-image: linear-gradient(135deg, #293F2D 0%, #647A4E 55%, #B17B51 100%);
+    color: white;
+    padding: 30px;
+    margin-bottom: 25px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+}
+
+.city-hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.75) 100%);
+    z-index: 1;
+}
+
+.city-hero-content {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+}
+
+.city-hero-image-credit {
+    position: relative;
+    margin: -17px 8px 25px;
+    text-align: right;
+    color: #64705B;
+    font-size: 0.68rem;
+}
+
+.city-hero-image-credit:hover,
+.city-hero-image-credit:focus-visible {
+    color: #394A32;
+}
+
+.city-hero-image-credit a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.city-switcher {
+    position: relative;
+    z-index: 5;
+    flex: 0 0 auto;
+}
+
+.city-switcher-button {
+    min-width: 190px;
+    min-height: 48px;
+    justify-content: center;
+    white-space: nowrap;
+    color: #263322;
+    background: #fff;
+    border: 2px solid rgba(255, 255, 255, 0.95);
+}
+
+.city-switcher-button:hover,
+.city-switcher-button:focus-visible,
+.city-switcher.show .city-switcher-button {
+    color: #263322;
+    background: #F3F6EC;
+    border-color: #fff;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+.city-switcher .dropdown-menu {
+    z-index: 1060;
+    max-height: min(60vh, 420px);
+    overflow-y: auto;
+}
+
+body.winter-theme {
+    --primary: #52788A;
+    --primary-hover: #3E6273;
+    --primary-light: #E5EFF3;
+    --secondary: #7899A3;
+    --secondary-dark: #587783;
+    --accent: #B77964;
+    --dark: #293943;
+    --gray-bg: #F0F5F7;
+    --bs-primary: #52788A;
+    --bs-primary-rgb: 82, 120, 138;
+    --bs-success: #5C806B;
+    --bs-success-rgb: 92, 128, 107;
+    --bs-link-color: #3E6273;
+    --bs-link-hover-color: #304F5E;
+    background-image: linear-gradient(180deg, #F5F9FA 0%, #EDF3F5 100%);
+    color: #293943;
+}
+
+body.winter-theme .navbar-custom,
+body.winter-theme .mobile-bottom-bar {
+    background: rgba(248, 252, 253, 0.95);
+    border-color: rgba(82, 120, 138, 0.16);
+}
+
+body.winter-theme .city-hero {
+    background-color: #486979;
+    box-shadow: 0 18px 40px rgba(52, 83, 98, 0.2);
+}
+
+body.winter-theme .city-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    z-index: 2;
+    pointer-events: none;
+    opacity: 0.58;
+    background-image:
+        radial-gradient(3px 3px at 24px 36px, rgba(255, 255, 255, 0.95) 50%, transparent 55%),
+        radial-gradient(2px 2px at 110px 90px, rgba(255, 255, 255, 0.85) 50%, transparent 55%),
+        radial-gradient(2px 2px at 170px 20px, rgba(255, 255, 255, 0.8) 50%, transparent 55%);
+    background-size: 210px 180px, 260px 230px, 320px 260px;
+    animation: winterDrift 18s linear infinite;
+}
+
+body.winter-theme .city-hero-content {
+    z-index: 3;
+}
+
+@keyframes winterDrift {
+    to { background-position: 0 360px, 0 460px, 0 520px; }
+}
+
+.winter-season-badge {
+    color: #274B5B;
+    background: rgba(237, 247, 250, 0.94);
+    border: 1px solid rgba(255, 255, 255, 0.65);
+}
+
+body.winter-theme .travel-card {
+    border: 1px solid rgba(82, 120, 138, 0.12);
+    box-shadow: 0 10px 30px rgba(52, 83, 98, 0.08);
+}
+
+body.winter-theme .filter-chip:hover,
+body.winter-theme .filter-chip.active {
+    box-shadow: 0 4px 12px rgba(82, 120, 138, 0.24);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.winter-theme .city-hero::before {
+        animation: none;
+    }
+}
+
+.login-page {
+    min-height: calc(100vh - 70px);
+    min-height: calc(100dvh - 70px);
+    position: relative;
+    overflow: hidden;
+    background:
+        linear-gradient(110deg, rgba(16, 34, 43, 0.72) 0%, rgba(16, 34, 43, 0.5) 48%, rgba(29, 43, 48, 0.28) 100%),
+        url('https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=2000&q=85') center 48% / cover no-repeat;
+}
+
+.login-page .card {
+    background: rgba(255, 255, 255, 0.97) !important;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    box-shadow: 0 24px 70px rgba(10, 25, 32, 0.3) !important;
+}
+
+/* Audio Player Equalizer Waveform */
+.audio-visualizer {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    height: 24px;
+}
+
+.audio-bar {
+    width: 4px;
+    background: var(--primary);
+    border-radius: 4px;
+    height: 6px;
+    transition: height 0.2s ease;
+}
+
+.audio-playing .audio-bar:nth-child(1) { animation: soundWave 0.6s infinite ease-in-out alternate; }
+.audio-playing .audio-bar:nth-child(2) { animation: soundWave 0.8s infinite ease-in-out alternate 0.15s; }
+.audio-playing .audio-bar:nth-child(3) { animation: soundWave 0.5s infinite ease-in-out alternate 0.3s; }
+.audio-playing .audio-bar:nth-child(4) { animation: soundWave 0.7s infinite ease-in-out alternate 0.1s; }
+.audio-playing .audio-bar:nth-child(5) { animation: soundWave 0.9s infinite ease-in-out alternate 0.25s; }
+
+@keyframes soundWave {
+    0% { height: 4px; }
+    100% { height: 22px; }
+}
+
+/* Mobile Thumb Bottom Navigation Bar */
+.mobile-bottom-bar {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: calc(65px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    z-index: 1030;
+    justify-content: space-around;
+    align-items: center;
+    box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.mobile-bottom-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #718096;
+    text-decoration: none;
+    font-size: 0.72rem;
+    font-weight: 600;
+    transition: color 0.2s ease;
+}
+
+.mobile-bottom-item i {
+    font-size: 1.25rem;
+    margin-bottom: 2px;
+}
+
+.mobile-bottom-item.active,
+.mobile-bottom-item:hover {
+    color: var(--primary);
+}
+
+@media (max-width: 768px) {
+    .mobile-bottom-bar {
+        display: flex;
+    }
+    body {
+        padding-bottom: calc(82px + env(safe-area-inset-bottom, 0px));
+    }
+}
+
+/* Floating SOS Button */
+.floating-sos-btn {
+    position: fixed;
+    bottom: calc(82px + env(safe-area-inset-bottom, 0px));
+    right: max(14px, env(safe-area-inset-right, 0px));
+    z-index: 1025;
+    background: linear-gradient(135deg, #FF385C 0%, #E00034 100%);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: 12px 24px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 10px 25px rgba(224, 0, 52, 0.4);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.floating-sos-btn:hover {
+    transform: scale(1.06);
+    color: white;
+    box-shadow: 0 14px 30px rgba(224, 0, 52, 0.55);
+}
+
+.sos-hero-trigger {
+    border: 0;
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.sos-hero-trigger:hover,
+.sos-hero-trigger:focus-visible {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.28), 0 12px 30px rgba(0, 0, 0, 0.2);
+}
+
+.sos-countdown-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: rgba(25, 32, 25, 0.72);
+    backdrop-filter: blur(5px);
+}
+
+.sos-countdown-overlay[hidden] {
+    display: none;
+}
+
+.sos-countdown-card {
+    width: min(100%, 460px);
+    padding: 2rem;
+    border-radius: 1.5rem;
+    background: #fff;
+    text-align: center;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+}
+
+.sos-countdown-icon {
+    display: grid;
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1rem;
+    place-items: center;
+    border-radius: 50%;
+    background: #FFF0F1;
+    color: #C5223A;
+    font-size: 1.8rem;
+}
+
+.sos-countdown-card h2 span {
+    color: #C5223A;
+    font-variant-numeric: tabular-nums;
+}
+
+.sos-countdown-active {
+    overflow: hidden;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+}
+
+::-webkit-scrollbar-track {
+    background: #F1F1F1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #CBD5E0;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #A0AEC0;
+}
+
+/* Leaflet Map enhancements */
+#mainMap, #safetyMap {
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--card-shadow);
+    z-index: 10;
+}
+
+/* Interactive Filter Chips */
+.filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    border-radius: 30px;
+    background: white;
+    border: 1px solid #E2E8F0;
+    color: #4A5568;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+.filter-chip:hover, .filter-chip.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 120, 76, 0.25);
+}
+
+/* Consistent, visible interaction states and comfortable touch targets */
+.btn,
+button,
+a {
+    -webkit-tap-highlight-color: transparent;
+}
+
+.btn {
+    white-space: normal;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+
+.btn-sm:not(.btn-close),
+.btn-xs {
+    min-height: 38px;
+}
+
+.btn.rounded-circle {
+    display: inline-flex;
+    width: 40px;
+    height: 40px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    flex: 0 0 auto;
+}
+
+.btn:not(:disabled):hover {
+    transform: translateY(-1px);
+}
+
+.btn:focus-visible,
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 3px solid rgba(102, 120, 76, 0.48);
+    outline-offset: 2px;
+    box-shadow: none;
+}
+
+.btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+    transform: none;
+}
+
+.btn-close {
+    flex: 0 0 auto;
+}
+
+.table-responsive {
+    border-radius: 12px;
+}
+
+.table-responsive td,
+.table-responsive th {
+    vertical-align: middle;
+}
+
+.modal-dialog {
+    max-height: calc(100vh - 1rem);
+    max-height: calc(100dvh - 1rem);
+}
+
+.modal-content {
+    max-height: calc(100vh - 1rem);
+    max-height: calc(100dvh - 1rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.modal-body {
+    min-width: 0;
+}
+
+#mainMap,
+#safetyMap {
+    min-height: 260px;
+}
+
+/* Emergency countdown screen */
+.countdown-circle {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background: #FFF5F5;
+    border: 6px solid #FF385C;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    animation: radarPulse 1.5s infinite;
+}
+
+@media (max-width: 767.98px) {
+    .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .login-page {
+        min-height: calc(100vh - 70px);
+        min-height: calc(100dvh - 70px);
+        background-position: 55% center;
+        background-attachment: scroll;
+    }
+
+    .city-hero {
+        min-height: 300px;
+        padding: 1.25rem;
+        background-position: center;
+    }
+
+    .city-hero-content {
+        align-items: flex-start !important;
+    }
+
+    .city-hero-content > div:first-child {
+        flex: 1 1 100%;
+        min-width: 0;
+    }
+
+    .city-hero-content > div:first-child > .d-flex {
+        flex-wrap: wrap;
+    }
+
+    .city-hero-content > div:first-child > p {
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .city-hero-content > .city-switcher,
+    .city-hero-content > .city-switcher .city-switcher-button {
+        width: 100%;
+    }
+
+    .city-hero-content > .city-switcher .city-switcher-button {
+        justify-content: center;
+    }
+
+    .city-hero-image-credit {
+        margin-top: -17px;
+        margin-bottom: 25px;
+        padding: 0 4px;
+        font-size: 0.62rem;
+    }
+
+    .city-hero h1 {
+        font-size: clamp(2.2rem, 11vw, 3.5rem);
+        overflow-wrap: anywhere;
+    }
+
+    #locationNotice {
+        align-items: flex-start !important;
+    }
+
+    #locationNotice > .d-flex:first-child {
+        align-items: center !important;
+    }
+
+    #locationNotice > .d-flex:first-child > .bg-primary-subtle {
+        display: inline-flex;
+        width: 48px;
+        height: 48px;
+        flex: 0 0 48px;
+        align-items: center;
+        justify-content: center;
+        padding: 0 !important;
+    }
+
+    #section-map > .d-flex,
+    #section-explore > .d-flex {
+        align-items: stretch !important;
+    }
+
+    #locationNotice > .d-flex:last-child {
+        width: 100%;
+    }
+
+    #locationNotice > .d-flex:last-child .btn {
+        flex: 1 1 auto;
+    }
+
+    #section-map > .d-flex {
+        flex-wrap: wrap;
+    }
+
+    #section-map > .d-flex > .d-flex:last-child {
+        flex-wrap: wrap;
+    }
+
+    #mainMap,
+    #safetyMap {
+        height: 340px !important;
+    }
+
+    .table-responsive form,
+    .table-responsive .d-flex {
+        flex-wrap: wrap;
+    }
+
+    .floating-sos-btn {
+        max-width: calc(100vw - 28px);
+        padding: 10px 16px;
+        font-size: 0.82rem;
+    }
+
+    #floatingAudioBar {
+        bottom: calc(148px + env(safe-area-inset-bottom, 0px)) !important;
+        width: calc(100% - 24px) !important;
+        margin-bottom: 0 !important;
+    }
+
+    .filter-chip {
+        flex: 0 0 auto;
+        min-height: 42px;
+    }
+
+    .mobile-bottom-item {
+        min-width: 58px;
+        min-height: 48px;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 420px) {
+    .city-hero {
+        min-height: 340px;
+    }
+
+    .city-hero-content > .dropdown,
+    .city-hero-content > .dropdown .btn {
+        width: 100%;
+    }
+
+    .city-hero-content > .dropdown .btn {
+        justify-content: center;
+    }
+
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+
+    .floating-sos-btn {
+        right: 10px;
+        bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+    }
+
+    #floatingAudioBar {
+        bottom: calc(142px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

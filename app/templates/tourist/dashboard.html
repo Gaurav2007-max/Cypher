@@ -1,0 +1,505 @@
+{% extends "base.html" %}
+
+{% block title %}{{ current_city.name }} — TravelTech Smart Exploration{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+    <section class="card border-0 shadow-sm rounded-4 p-3 mb-4 bg-white" aria-labelledby="notificationInboxTitle">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <i class="bi bi-bell-fill text-primary"></i>
+            <h2 id="notificationInboxTitle" class="h6 fw-bold mb-0">Crowd update inbox</h2>
+        </div>
+        <div id="crowdNotificationList" class="small text-muted" role="status">Loading updates...</div>
+    </section>
+
+    <!-- Location Permission / Transparency Banner (Disclosed gracefully before asking) -->
+    <div id="locationNotice" class="alert alert-light border rounded-4 shadow-sm p-3 mb-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-3">
+            <div class="bg-primary-subtle text-primary p-2 rounded-circle fs-4">
+                <i class="bi bi-geo-alt-fill"></i>
+            </div>
+            <div>
+                <strong class="text-dark">Location-Aware Guidance Available</strong>
+                <div class="text-muted small">Enable GPS for nearby cultural stories and estimated walking directions. A separate SOS action may request a one-time location fix; continuous samples require profile consent and a GPS action.</div>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            {% if current_user.profile and current_user.profile.location_tracking_enabled %}
+            <button class="btn btn-sm btn-primary rounded-pill px-3 fw-bold" onclick="enableTouristLocation()">
+                <i class="bi bi-crosshair me-1"></i>Enable GPS
+            </button>
+            <button id="stopLocationTrackingBtn" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="disableTouristLocation()" hidden>
+                Stop GPS
+            </button>
+            {% else %}
+            <a class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold" href="{{ url_for('auth.profile') }}#locationTrackingSwitch">
+                <i class="bi bi-gear me-1"></i>Enable location consent in Settings
+            </a>
+            {% endif %}
+            <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="document.getElementById('locationNotice').remove()">
+                Explore Virtually
+            </button>
+        </div>
+    </div>
+
+    <!-- City Hero Visual Showcase Banner -->
+    <div class="city-hero"{% if current_city.display_image_url %} style="background-image: linear-gradient(135deg, rgba(17, 35, 46, 0.18), rgba(17, 35, 46, 0.7)), url('{{ current_city.display_image_url }}');"{% endif %}>
+        <div class="city-hero-content d-flex justify-content-between align-items-end flex-wrap gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-primary rounded-pill px-3 py-1 shadow-sm">
+                        <i class="bi bi-compass-fill me-1"></i>{{ current_city.state }}, {{ current_city.country }}
+                    </span>
+                    <span id="explorationModeBadge" class="badge bg-dark bg-opacity-75 rounded-pill px-3 py-1 shadow-sm border border-light border-opacity-25">
+                        <i class="bi bi-laptop me-1"></i>Virtually Exploring
+                    </span>
+                    {% if current_city.name == 'Faridabad' %}
+                    <span class="badge bg-warning text-dark rounded-pill px-3 py-1 fw-bold">
+                        <i class="bi bi-star-fill me-1"></i>Demo Showcase City
+                    </span>
+                    {% endif %}
+                    {% if site_theme == 'winter' %}
+                    <span class="badge winter-season-badge rounded-pill px-3 py-1 fw-bold">
+                        <i class="bi bi-snow me-1"></i>Shimla winter escape
+                    </span>
+                    {% endif %}
+                </div>
+                <h1 class="display-4 fw-extrabold mb-1" style="font-weight: 800; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">{{ current_city.name }}</h1>
+                <p class="lead text-light mb-0" style="max-width: 650px; text-shadow: 0 1px 6px rgba(0,0,0,0.6);">
+                    {{ current_city.description }}
+                </p>
+            </div>
+
+            <!-- City Switcher Dropdown -->
+            <div class="dropdown city-switcher">
+                <button class="btn btn-light rounded-pill dropdown-toggle city-switcher-button px-4 py-2 fw-bold shadow-lg d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-building text-primary"></i>
+                    <span>Switch City</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 p-2 mt-2" style="min-width: 240px;">
+                    <li class="dropdown-header text-uppercase small fw-bold text-muted">Select Virtual Exploration City</li>
+                    {% for city in cities %}
+                    <li>
+                        <a class="dropdown-item rounded-3 py-2 d-flex align-items-center justify-content-between {% if city.id == current_city.id %}active bg-primary text-white{% endif %}" href="{{ url_for('tourist.dashboard', city_id=city.id) }}">
+                            <span>
+                                <i class="bi bi-geo-alt me-2"></i>{{ city.name }}
+                                {% if city.name == 'Faridabad' %}<small class="badge bg-warning text-dark ms-1">Demo</small>{% endif %}
+                            </span>
+                            <small class="opacity-75">{{ city.state }}</small>
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% if current_city.name == 'Faridabad' %}
+    <div class="city-hero-image-credit">
+        Photo: <a href="https://commons.wikimedia.org/wiki/File:Nahar_Singh_Palace,_Ballabhgarh.jpg" target="_blank" rel="noopener noreferrer">Wiki.cowboy / Wikimedia Commons (CC BY-SA 4.0)</a>
+    </div>
+    {% endif %}
+
+    <!-- Quick Proximity Audio Demo Test Bar (Allows instant evaluation without walking) -->
+    <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 bg-white">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-primary-subtle text-primary p-2 rounded-circle">
+                    <i class="bi bi-broadcast"></i>
+                </span>
+                <div>
+                    <span class="fw-bold text-dark small">Location-Aware Storytelling Simulation (Proximity Trigger):</span>
+                    <span class="text-muted small d-block">Test the 10m-50m GPS cultural trigger and TTS audio player right from your browser.</span>
+                </div>
+            </div>
+            <div class="d-flex gap-2">
+                {% if current_city.name == 'Faridabad' %}
+                <button class="btn btn-sm btn-outline-primary rounded-pill fw-semibold px-3" onclick="simulateProximityTo('Surajkund', 28.4870, 77.2831)">
+                    <i class="bi bi-geo-fill me-1"></i>Simulate Surajkund (10m)
+                </button>
+                <button class="btn btn-sm btn-outline-success rounded-pill fw-semibold px-3" onclick="simulateProximityTo('Nahar Singh Palace', 28.3414, 77.3228)">
+                    <i class="bi bi-geo-fill me-1"></i>Simulate Ballabhgarh Fort (10m)
+                </button>
+                {% else %}
+                <button class="btn btn-sm btn-outline-primary rounded-pill fw-semibold px-3" onclick="simulateProximityTo('{{ destinations[0].name if destinations else 'Attraction' }}', {{ destinations[0].latitude if destinations else current_city.latitude }}, {{ destinations[0].longitude if destinations else current_city.longitude }})">
+                    <i class="bi bi-geo-fill me-1"></i>Simulate Proximity (10m)
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Filter Chips -->
+    <div class="d-flex align-items-center gap-2 overflow-x-auto pb-3 mb-3">
+        <button class="filter-chip filter-dest-chip active" onclick="filterDestinations('all', this)">
+            <i class="bi bi-grid-fill"></i>All Places
+        </button>
+        <button class="filter-chip filter-dest-chip" onclick="filterDestinations('hidden', this)">
+            <i class="bi bi-gem text-warning"></i>Hidden Gems
+        </button>
+        <button class="filter-chip filter-dest-chip" onclick="filterDestinations('heritage', this)">
+            <i class="bi bi-bank"></i>Heritage & Forts
+        </button>
+        <button class="filter-chip filter-dest-chip" onclick="filterDestinations('nature', this)">
+            <i class="bi bi-tree-fill text-success"></i>Lakes & Nature
+        </button>
+        <button class="filter-chip filter-dest-chip" onclick="filterDestinations('spiritual', this)">
+            <i class="bi bi-flower1 text-info"></i>Spiritual
+        </button>
+    </div>
+
+    <!-- Interactive Map Section -->
+    <section id="section-map" class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold mb-0 text-dark"><i class="bi bi-map-fill text-primary me-2"></i>Interactive Cultural Map</h4>
+                <div class="small text-muted">Authority-updated crowd reports (not live sensors), nearby places and estimated route guidance</div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge badge-crowd-normal"><i class="bi bi-circle-fill me-1" style="font-size:0.5rem"></i>Normal</span>
+                <span class="badge badge-crowd-moderate"><i class="bi bi-circle-fill me-1" style="font-size:0.5rem"></i>Moderate</span>
+                <span class="badge badge-crowd-crowded"><i class="bi bi-circle-fill me-1" style="font-size:0.5rem"></i>Crowded</span>
+                <span class="badge badge-crowd-overcrowded"><i class="bi bi-circle-fill me-1" style="font-size:0.5rem"></i>Overcrowded</span>
+            </div>
+        </div>
+
+        <div id="mainMap" style="height: 420px; width: 100%;"></div>
+
+        <!-- Dynamic Route Calculation Card (Hidden until directions requested) -->
+        <div id="routeResultCard" class="card border-0 shadow-lg rounded-4 p-4 mt-3 bg-white d-none">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <span class="badge bg-danger rounded-pill px-3 py-1 mb-1">Active Route</span>
+                    <h5 class="fw-bold mb-0">Route to <span id="routeDestName">Destination</span></h5>
+                    <div class="small text-muted"><span id="routeDistance">0 km</span> • Sourced via <span id="routeSource" class="fw-semibold">Estimated Model</span></div>
+                </div>
+                <button class="btn-close" onclick="document.getElementById('routeResultCard').classList.add('d-none')"></button>
+            </div>
+            <div class="row g-3 mt-1">
+                <div class="col-md-4">
+                    <div class="p-3 bg-light rounded-4 text-center">
+                        <i class="bi bi-person-walking text-primary fs-3"></i>
+                        <div class="fw-bold mt-1">Walking</div>
+                        <div id="routeWalkTime" class="text-muted small">-- min</div>
+                        <span class="badge bg-success-subtle text-success mt-1">Free</span>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 bg-light rounded-4 text-center">
+                        <i class="bi bi-car-front-fill text-primary fs-3"></i>
+                        <div class="fw-bold mt-1">Cab / Auto-Rickshaw</div>
+                        <div id="routeDriveTime" class="text-muted small">-- min</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 bg-light rounded-4 text-center">
+                        <i class="bi bi-train-front-fill text-info fs-3"></i>
+                        <div class="fw-bold mt-1">Metro / City Transit</div>
+                        <div id="routeTransitTime" class="text-muted small">-- min</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Cultural Attractions & Stories Section -->
+    <section id="section-explore" class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h4 class="fw-bold mb-0 text-dark"><i class="bi bi-compass-fill text-primary me-2"></i>Cultural Destinations & Heritage</h4>
+                <div class="small text-muted">Tap to listen to location stories, check crowd levels, or find alternatives</div>
+            </div>
+            <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="openFeedbackModal()">
+                <i class="bi bi-flag me-1"></i>Report Update
+            </button>
+        </div>
+
+        <div class="row g-4" id="destinationsGrid">
+            {% for dest in destinations %}
+            <div class="col-md-6 col-lg-4 dest-card-item" data-category="{{ dest.category }}" data-hidden-gem="{{ 'true' if dest.is_hidden_gem else 'false' }}">
+                <div class="card travel-card h-100">
+                    <div class="card-img-wrapper">
+                        <div class="image-fallback" aria-hidden="true"><i class="bi bi-image"></i></div>
+                        {% if dest.display_image_url %}<img src="{{ dest.display_image_url }}" class="card-img-top" alt="{{ dest.name }}" loading="lazy" onerror="this.classList.add('image-failed')">{% endif %}
+                        
+                        <!-- Top Badges -->
+                        <div class="badge-overlay-top-left">
+                            <span class="badge badge-crowd-{{ dest.effective_crowd_status|lower }} px-3 py-2 rounded-pill shadow-sm">
+                                <i class="bi bi-people-fill me-1"></i>{{ dest.effective_crowd_status }}
+                            </span>
+                        </div>
+                        <div class="badge-overlay-top-right d-flex gap-1">
+                            {% if dest.is_hidden_gem %}
+                            <span class="badge bg-warning text-dark px-3 py-2 rounded-pill shadow-sm fw-bold">
+                                <i class="bi bi-gem me-1"></i>Hidden Gem
+                            </span>
+                            {% endif %}
+                            <button class="btn btn-sm btn-light rounded-circle shadow-sm" onclick="toggleSaveDestination({{ dest.id }}, this)" title="Save Destination" aria-label="Save {{ dest.name }} to saved places" aria-pressed="{{ 'true' if dest.id in saved_dest_ids else 'false' }}">
+                                <i class="bi {% if dest.id in saved_dest_ids %}bi-heart-fill text-danger{% else %}bi-heart text-muted{% endif %}"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-4 d-flex flex-column">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="badge bg-light text-muted border text-uppercase" style="font-size: 0.7rem;">{{ dest.category }}</span>
+                            <span class="small text-muted"><i class="bi bi-clock me-1"></i>Listed hours: {{ dest.opening_hours or 'not provided; confirm locally' }}</span>
+                        </div>
+
+                        <h5 class="fw-bold mb-2 text-dark">{{ dest.name }}</h5>
+                        <p class="text-muted small mb-3 flex-grow-1" style="line-height: 1.5;">
+                            {{ dest.description[:110] }}...
+                        </p>
+
+                        <!-- Overcrowded Notice & Alternatives Button -->
+                        {% if dest.is_crowded_or_more %}
+                        <div class="alert alert-danger p-2 rounded-3 mb-3 small d-flex align-items-center justify-content-between">
+                            <div>
+                                <i class="bi bi-exclamation-triangle-fill text-danger me-1"></i>
+                                <strong>High Congestion</strong>
+                            </div>
+                            <button class="btn btn-xs btn-danger rounded-pill px-2 py-1 fw-bold" style="font-size: 0.72rem;" onclick="openSmartAlternatives({{ dest.id }})">
+                                Alternatives <i class="bi bi-arrow-right"></i>
+                            </button>
+                        </div>
+                        {% endif %}
+
+                        <!-- Cultural Story TTS Player -->
+                        {% if dest.stories %}
+                        {% set story = dest.stories[0] %}
+                        <div class="p-3 bg-light rounded-4 mb-3 border">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="small fw-bold text-dark text-truncate" style="max-width: 170px;">
+                                    <i class="bi bi-mic-fill text-primary me-1"></i>{{ story.title }}
+                                </span>
+                                <div class="audio-visualizer" id="visualizer-{{ story.id }}">
+                                    <span class="audio-bar"></span>
+                                    <span class="audio-bar"></span>
+                                    <span class="audio-bar"></span>
+                                    <span class="audio-bar"></span>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2 mt-2">
+                                <button id="btn-audio-{{ story.id }}" class="btn btn-sm btn-primary rounded-pill flex-grow-1 fw-bold" onclick="window.travelTTS.speak('{{ (story.audio_text or story.content)|replace("'", "\\'") }}', '{{ story.title|replace("'", "\\'") }}', {{ story.id }})" aria-label="Play or pause {{ story.title }}">
+                                    <i class="bi bi-play-fill me-1"></i>Listen (TTS)
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary rounded-circle" onclick="toggleSaveStory({{ story.id }}, this)" title="Save Story" aria-label="Save {{ story.title }} to saved stories" aria-pressed="{{ 'true' if story.id in saved_story_ids else 'false' }}">
+                                    <i class="bi {% if story.id in saved_story_ids %}bi-bookmark-fill text-primary{% else %}bi-bookmark text-muted{% endif %}"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Card Footer Actions -->
+                        <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                            <span class="small text-muted" title="{{ dest.source_attribution }}">
+                                <i class="bi bi-patch-check-fill text-primary me-1"></i>Verified Data
+                            </span>
+                            <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="window.travelMap.requestDirections({{ dest.latitude }}, {{ dest.longitude }}, '{{ dest.name|replace("'", "\\'") }}')">
+                                <i class="bi bi-compass me-1"></i>Navigate
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Taste the Local Culture (Authentic Cuisines) -->
+    <section id="section-cuisine" class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold mb-0 text-dark"><i class="bi bi-cup-hot-fill text-warning me-2"></i>Taste the Local Culture</h4>
+                <div class="small text-muted">Regional food ideas; check ingredients and prices with vendors</div>
+            </div>
+        </div>
+
+        <!-- Dietary Filter Chips -->
+        <div class="d-flex align-items-center gap-2 overflow-x-auto pb-3 mb-3">
+            <button class="filter-chip filter-cuisine-chip active" onclick="filterCuisine('all', this)">All Cuisines</button>
+            <button class="filter-chip filter-cuisine-chip" onclick="filterCuisine('vegetarian', this)"><i class="bi bi-circle-fill text-success" style="font-size: 0.5rem"></i>Vegetarian</button>
+            <button class="filter-chip filter-cuisine-chip" onclick="filterCuisine('gluten-free', this)">Gluten-Free</button>
+            <button class="filter-chip filter-cuisine-chip" onclick="filterCuisine('street-food', this)">Street Food</button>
+        </div>
+
+        <div class="row g-4">
+            {% for item in cuisine_items %}
+            <div class="col-md-6 col-lg-4 cuisine-card-item" data-tags="{{ item.dietary_tags }}">
+                <div class="card travel-card h-100">
+                    <div class="card-img-wrapper" style="height: 180px;">
+                        <div class="image-fallback" aria-hidden="true"><i class="bi bi-cup-hot"></i></div>
+                        {% if item.image_url %}<img src="{{ item.image_url }}" class="card-img-top" alt="{{ item.name }}" loading="lazy" onerror="this.classList.add('image-failed')">{% endif %}
+                        <div class="badge-overlay-top-right">
+                            {% if item.verified_status == 'sample' %}
+                            <span class="badge bg-warning text-dark rounded-pill px-3 py-2">Sample rating</span>
+                            {% elif item.user_rating is not none %}
+                            <span class="badge bg-dark bg-opacity-75 rounded-pill px-3 py-2 text-white">
+                                <i class="bi bi-star-fill text-warning me-1"></i>{{ item.user_rating }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="card-body p-4 d-flex flex-column">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="fw-bold mb-0 text-dark">{{ item.name }}</h6>
+                            <span class="badge bg-success-subtle text-success">{{ item.price_range }}</span>
+                        </div>
+                        <p class="text-muted small mb-2 flex-grow-1">{{ item.description }}</p>
+                        <div class="p-2 bg-light rounded-3 small text-muted mb-2">
+                            <i class="bi bi-geo-alt-fill text-primary me-1"></i><strong>Suggested spots:</strong> {{ item.famous_spots or 'Not verified; ask locally' }}
+                        </div>
+                        <div class="small text-muted border-top pt-2">
+                            <i class="bi bi-info-circle me-1"></i>{{ item.allergen_info }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Activities & Experiences -->
+    <section id="section-activities" class="mb-5">
+        <div class="mb-4">
+            <h4 class="fw-bold mb-0 text-dark"><i class="bi bi-stars text-primary me-2"></i>Activities & Experiences</h4>
+            <div class="small text-muted">Sample activity listings and price estimates; check with the local operator</div>
+        </div>
+        <div class="row g-4">
+            {% for act in activities %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card travel-card h-100">
+                    <div class="card-img-wrapper" style="height: 180px;">
+                        <div class="image-fallback" aria-hidden="true"><i class="bi bi-stars"></i></div>
+                        {% if act.image_url %}<img src="{{ act.image_url }}" class="card-img-top" alt="{{ act.name }}" loading="lazy" onerror="this.classList.add('image-failed')">{% endif %}
+                        <div class="badge-overlay-top-left">
+                            <span class="badge bg-primary rounded-pill px-3 py-1">{{ act.category|replace('_', ' ')|title }}</span>
+                        </div>
+                    </div>
+                    <div class="card-body p-4 d-flex flex-column">
+                        <h6 class="fw-bold mb-2 text-dark">{{ act.name }}</h6>
+                        <p class="text-muted small mb-3 flex-grow-1">{{ act.description }}</p>
+                        <div class="d-flex justify-content-between align-items-center mb-2 small">
+                            <span class="text-muted"><i class="bi bi-hourglass-split me-1"></i>{{ act.typical_duration }}</span>
+                            <span class="fw-bold text-dark">{{ act.price_range }}</span>
+                        </div>
+                        <div class="p-2 bg-light rounded-3 small text-muted">
+                            <i class="bi bi-shield-check text-success me-1"></i>{{ act.safety_precautions }}
+                        </div>
+                        <div class="small text-muted mt-2">{{ act.price_source }}{% if act.last_verified_at %} · Listed {{ act.last_verified_at.strftime('%Y-%m-%d') }}{% endif %}</div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Public Transport & Transparent Transit Options -->
+    <section id="section-transport" class="mb-5">
+        <div class="mb-4">
+            <h4 class="fw-bold mb-0 text-dark"><i class="bi bi-bus-front-fill text-info me-2"></i>Public Transport & Transit</h4>
+            <div class="small text-muted">Reference data only; fares and timings are not live</div>
+        </div>
+        <div class="row g-4">
+            {% for trans in transport_options %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card travel-card h-100">
+                    <div class="card-body p-4 d-flex flex-column">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="badge bg-info-subtle text-info text-uppercase">{{ trans.mode|replace('_', ' ') }}</span>
+                            <span class="badge bg-light text-dark border">{{ trans.source_type|title }} Source</span>
+                        </div>
+                        <h6 class="fw-bold mb-2 text-dark">{{ trans.name_or_route }}</h6>
+                        <p class="text-muted small mb-3 flex-grow-1">{{ trans.details }}</p>
+                        
+                        <div class="p-3 bg-light rounded-4 mb-2">
+                            <div class="d-flex justify-content-between small mb-1">
+                                <span class="text-muted">Estimated Fare:</span>
+                                <span class="fw-bold text-success">{{ trans.fare_estimate }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between small mb-1">
+                                <span class="text-muted">Operating Hours:</span>
+                                <span class="text-dark">{{ trans.operating_hours }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between small">
+                                <span class="text-muted">Frequency:</span>
+                                <span class="text-dark">{{ trans.frequency }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize Map with current city coordinates
+    const cityLat = {{ current_city.latitude }};
+    const cityLng = {{ current_city.longitude }};
+    window.travelMap.init(cityLat, cityLng);
+
+    // Load Destination Markers into Map
+    const destinationsData = {{ destinations_json|tojson }};
+    window.travelMap.loadDestinations(destinationsData);
+    loadCrowdNotifications();
+});
+
+function loadCrowdNotifications() {
+    const inbox = document.getElementById('crowdNotificationList');
+    fetch('/api/notifications')
+        .then(async response => {
+            if (!response.ok) throw new Error('Could not load crowd updates.');
+            return response.json();
+        })
+        .then(notifications => {
+            inbox.replaceChildren();
+            if (!notifications.length) {
+                inbox.textContent = 'No crowd updates yet. Subscribe to a crowded destination to hear when its status changes.';
+                return;
+            }
+            notifications.forEach(notification => {
+                const item = document.createElement('p');
+                item.className = 'mb-1';
+                item.textContent = notification.notification_message || `${notification.destination_name} has a crowd update.`;
+                inbox.appendChild(item);
+            });
+        })
+        .catch(error => {
+            console.error('Could not load crowd update inbox:', error);
+            inbox.textContent = error.message;
+        });
+}
+
+function enableTouristLocation() {
+    if (document.body.dataset.locationConsent !== 'true') {
+        window.location.href = "{{ url_for('auth.profile') }}#locationTrackingSwitch";
+        return;
+    }
+    window.travelSafety.requestLocationPermission((coords) => {
+        if (coords) {
+            window.travelMap.setUserLocation(coords.latitude, coords.longitude);
+            document.getElementById('explorationModeBadge').className = 'badge bg-success rounded-pill px-3 py-1 shadow-sm';
+            document.getElementById('explorationModeBadge').innerHTML = '<i class="bi bi-geo-alt-fill me-1"></i>Physically Present';
+            document.getElementById('locationNotice').remove();
+            document.getElementById('stopLocationTrackingBtn').hidden = false;
+            alert("Location synchronized. Foreground GPS is active while this page remains open.");
+        } else {
+            alert("Could not access location. Virtual exploration mode remains active.");
+        }
+    });
+}
+
+function disableTouristLocation() {
+    window.travelSafety.stopContinuousTracking();
+    document.getElementById('stopLocationTrackingBtn').hidden = true;
+    document.getElementById('explorationModeBadge').className = 'badge bg-dark bg-opacity-75 rounded-pill px-3 py-1 shadow-sm border border-light border-opacity-25';
+    document.getElementById('explorationModeBadge').innerHTML = '<i class="bi bi-laptop me-1"></i>Virtually Exploring';
+}
+</script>
+{% endblock %}

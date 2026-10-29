@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Verify Emergency Contact — TravelTech{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="card border-0 shadow-sm rounded-4 p-4 mx-auto" style="max-width: 32rem;">
+        <h1 class="h4 fw-bold">Verify emergency contact email</h1>
+        <p class="text-muted">Confirm that you control this email address. Verification enables live emergency alerts to this contact.</p>
+        <form method="POST">
+            <button type="submit" class="btn btn-primary rounded-pill px-4">Confirm email</button>
+            <a class="btn btn-outline-secondary rounded-pill px-4" href="{{ url_for('auth.login') }}">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

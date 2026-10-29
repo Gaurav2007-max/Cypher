@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Profile & Preferences — TravelTech{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center gap-3 mb-4 border-bottom pb-3">
+                    <div class="bg-danger text-white rounded-circle p-3 fs-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                        <i class="bi bi-person-fill"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-0 text-dark">{{ user.username }}</h4>
+                        <span class="badge bg-light text-muted border text-uppercase">{{ user.role }} Account</span>
+                    </div>
+                </div>
+
+                <form id="profileSettingsForm" method="POST" action="{{ url_for('auth.profile') }}">
+                    <h5 class="fw-bold text-dark mb-3"><i class="bi bi-person-badge text-primary me-2"></i>Personal Details</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">Full Name</label>
+                            <input type="text" name="full_name" class="form-control rounded-3" value="{{ profile.full_name or '' }}" placeholder="Your Name">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">Phone Number</label>
+                            <input type="text" name="phone" class="form-control rounded-3" value="{{ profile.phone or '' }}" placeholder="+91 98765 43210">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">Email (Registered)</label>
+                            <input type="email" class="form-control rounded-3 bg-light" value="{{ user.email }}" disabled>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">Default City</label>
+                            <select name="preferred_city_id" class="form-select rounded-3">
+                                {% for c in cities %}
+                                <option value="{{ c.id }}" {% if profile.preferred_city_id == c.id %}selected{% endif %}>
+                                    {{ c.name }}, {{ c.state }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <h5 class="fw-bold text-dark mb-3"><i class="bi bi-shield-check text-success me-2"></i>Emergency Contact & Safety Desk</h5>
+                    <div class="p-3 bg-light rounded-4 border mb-4">
+                        <p class="text-muted small mb-3">
+                            Alerts are sent only after the cancel window expires and only when emergency consent is enabled. Live SMTP delivery requires a verified email. International tourists can use a travel agency or consulate.
+                        </p>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-muted">Contact / Agency Name</label>
+                                <input type="text" name="contact_name" class="form-control rounded-3" value="{{ contact.name if contact else '' }}" placeholder="e.g. Sarah Smith / Global Assist">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-muted">Emergency Email</label>
+                                <input type="email" name="contact_email" class="form-control rounded-3" value="{{ contact.email if contact else '' }}" placeholder="alert@emergency-contact.com">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-muted">Contact Phone</label>
+                                <input type="text" name="contact_phone" class="form-control rounded-3" value="{{ contact.phone if contact else '' }}" placeholder="+1 555 123 4567">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-muted">Relationship / Type</label>
+                                <input type="text" name="contact_relationship" class="form-control rounded-3" value="{{ contact.relationship if contact else 'Family' }}" placeholder="Family / Friend / Travel Desk">
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="is_agency" id="agencyCheck" {% if contact and contact.is_agency %}checked{% endif %}>
+                                    <label class="form-check-label small fw-semibold text-dark" for="agencyCheck">
+                                        This contact is a Registered International Travel Assistance Agency or Consulate
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h5 class="fw-bold text-dark mb-3"><i class="bi bi-sliders text-danger me-2"></i>Story Audio & Proximity Settings</h5>
+                    <div class="p-3 bg-light rounded-4 border mb-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-muted d-flex justify-content-between">
+                                    <span>Proximity Trigger Radius</span>
+                                    <span id="radiusVal" class="text-danger fw-bold">{{ profile.proximity_radius_meters }}m</span>
+                                </label>
+                                <input type="range" name="proximity_radius" class="form-range" min="10" max="200" step="5" value="{{ profile.proximity_radius_meters }}" oninput="document.getElementById('radiusVal').innerText = this.value + 'm'">
+                                <div class="small text-muted" style="font-size: 0.75rem;">Radius at which location-aware stories trigger automatically (Default: 50m, minimum: 10m).</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-muted d-flex justify-content-between">
+                                    <span>TTS Speech Rate</span>
+                                    <span id="rateVal" class="text-danger fw-bold">{{ profile.audio_speech_rate }}x</span>
+                                </label>
+                                <input type="range" name="speech_rate" class="form-range" min="0.75" max="1.5" step="0.05" value="{{ profile.audio_speech_rate }}" oninput="document.getElementById('rateVal').innerText = this.value + 'x'; window.travelTTS.setSpeechRate(this.value)">
+                                <div class="small text-muted" style="font-size: 0.75rem;">Adjust playback speed of cultural audio stories.</div>
+                            </div>
+
+                            <div class="col-12 mt-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="auto_story_notifications" id="autoStorySwitch" {% if profile.auto_story_notifications %}checked{% endif %}>
+                                    <label class="form-check-label small fw-semibold text-dark" for="autoStorySwitch">
+                                        Enable automatic proximity story notifications as I approach attractions
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch mt-2">
+                                    <input class="form-check-input" type="checkbox" name="emergency_consent" id="emergencyConsentSwitch" {% if profile.emergency_consent %}checked{% endif %}>
+                                    <label class="form-check-label small fw-semibold text-dark" for="emergencyConsentSwitch">
+                                        Consent to send SOS alerts to my verified emergency contact after the cancellation countdown
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch mt-2">
+                                    <input class="form-check-input" type="checkbox" name="location_tracking_enabled" id="locationTrackingSwitch" {% if profile.location_tracking_enabled %}checked{% endif %}>
+                                    <label class="form-check-label small fw-semibold text-dark" for="locationTrackingSwitch">
+                                        Allow foreground location samples for nearby stories and the emergency location trail (requires a separate GPS action)
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch mt-2">
+                                    <input class="form-check-input" type="checkbox" name="sensor_consent" id="sensorConsentSwitch" {% if profile.sensor_consent %}checked{% endif %}>
+                                    <label class="form-check-label small fw-semibold text-dark" for="sensorConsentSwitch">
+                                        Allow optional device motion sensing for impact alerts (must also be enabled from the Safety Center)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{{ url_for('tourist.dashboard') }}" class="btn btn-outline-secondary rounded-pill px-4">Cancel</a>
+                        <button type="submit" class="btn btn-danger rounded-pill px-5 fw-bold shadow-sm">
+                            Save Changes
+                        </button>
+                    </div>
+                </form>
+                {% if contact %}
+                <div class="mt-3">
+                    {% if contact.verification and contact.verification.is_verified %}
+                    <span class="badge bg-success-subtle text-success">Emergency email verified</span>
+                    {% else %}
+                    <span class="badge bg-warning-subtle text-warning">Emergency email not verified</span>
+                    <form id="verifyContactForm" method="POST" action="{{ url_for('auth.send_contact_verification') }}" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill ms-2">Send verification email</button>
+                    </form>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+document.getElementById('profileSettingsForm')?.addEventListener('submit', () => {
+    try {
+        localStorage.setItem(
+            'traveltech-location-consent',
+            document.getElementById('locationTrackingSwitch').checked ? 'true' : 'false'
+        );
+    } catch (error) {
+        console.error('Could not broadcast the location-consent change to other tabs:', error);
+    }
+});
+</script>
+{% endblock %}
