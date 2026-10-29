@@ -12,7 +12,12 @@ class TravelMap {
     }
 
     init(cityLat, cityLng, zoom = 13) {
-        if (!document.getElementById(this.elementId)) return;
+        const element = document.getElementById(this.elementId);
+        if (!element) return false;
+        if (typeof L === 'undefined') {
+            element.innerHTML = '<div class="alert alert-warning m-3" role="status">The map library did not load. Check your connection and reload the page.</div>';
+            return false;
+        }
         this.cityCenter = [cityLat, cityLng];
 
         this.map = L.map(this.elementId, {
@@ -21,10 +26,35 @@ class TravelMap {
             zoomControl: true
         });
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        this.tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
             maxZoom: 19
         }).addTo(this.map);
+        this.tileLayer.on('tileerror', () => this.useFallbackTiles());
+        window.setTimeout(() => this.map.invalidateSize(), 0);
+        return true;
+    }
+
+    useFallbackTiles() {
+        if (!this.map || this.usingFallbackTiles) return;
+        this.usingFallbackTiles = true;
+        if (this.tileLayer) this.map.removeLayer(this.tileLayer);
+        this.tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.de/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19,
+            subdomains: ['a', 'b', 'c']
+        }).addTo(this.map);
+        this.tileLayer.on('tileerror', () => {
+            const element = document.getElementById(this.elementId);
+            if (element && !element.querySelector('[data-map-tile-error]')) {
+                const message = document.createElement('div');
+                message.dataset.mapTileError = 'true';
+                message.className = 'alert alert-warning position-absolute top-0 start-0 m-3';
+                message.setAttribute('role', 'status');
+                message.textContent = 'Map tiles are unavailable right now. Destination cards are still available below.';
+                element.appendChild(message);
+            }
+        });
     }
 
     getCrowdColor(status) {
@@ -38,6 +68,7 @@ class TravelMap {
     }
 
     loadDestinations(destinations) {
+        if (!this.map) return;
         this.clearMarkers();
 
         destinations.forEach(dest => {

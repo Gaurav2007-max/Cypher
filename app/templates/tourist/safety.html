@@ -226,17 +226,48 @@
 let safetyMap = null;
 let trailPolyline = null;
 let trailMarkers = [];
+let safetyTileLayer = null;
+let usingSafetyFallbackTiles = false;
 
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize Safety Map
+    const mapElement = document.getElementById('safetyMap');
+    if (typeof L === 'undefined') {
+        mapElement.innerHTML = '<div class="alert alert-warning m-3" role="status">The map library did not load. Check your connection and reload the page.</div>';
+        refreshLocationTrail();
+        return;
+    }
     safetyMap = L.map('safetyMap').setView([28.4089, 77.3178], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    safetyTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 19
     }).addTo(safetyMap);
+    safetyTileLayer.on('tileerror', switchSafetyMapTiles);
 
     refreshLocationTrail();
 });
+
+function switchSafetyMapTiles() {
+    if (!safetyMap || usingSafetyFallbackTiles) return;
+    usingSafetyFallbackTiles = true;
+    safetyMap.removeLayer(safetyTileLayer);
+    safetyTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.de/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19,
+        subdomains: ['a', 'b', 'c']
+    }).addTo(safetyMap);
+    safetyTileLayer.on('tileerror', () => {
+        const element = document.getElementById('safetyMap');
+        if (element && !element.querySelector('[data-map-tile-error]')) {
+            const message = document.createElement('div');
+            message.dataset.mapTileError = 'true';
+            message.className = 'alert alert-warning position-absolute top-0 start-0 m-3';
+            message.setAttribute('role', 'status');
+            message.textContent = 'Map tiles are unavailable right now. Location samples remain visible in the table.';
+            element.appendChild(message);
+        }
+    });
+}
 
 function refreshLocationTrail() {
     fetch('/api/safety/location-history')
@@ -247,6 +278,10 @@ function refreshLocationTrail() {
 
             if (trail.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="5" class="text-center py-3 text-muted">No location samples recorded in the last 10 minutes yet. (Continuous tracking records points every 15 seconds).</td></tr>';
+                return;
+            }
+            if (!safetyMap) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-3 text-muted">Location samples are available in the table; the map library could not be loaded.</td></tr>';
                 return;
             }
 

@@ -13,6 +13,12 @@ def test_relative_sqlite_database_uri_resolves_from_project_root():
 def test_in_memory_sqlite_database_uri_is_preserved():
     assert resolve_database_uri('sqlite:///:memory:') == 'sqlite:///:memory:'
 
+
+def test_render_postgres_database_url_uses_installed_psycopg_driver():
+    uri = resolve_database_uri('postgres://travel_user:secret@db.example.com/travel')
+    assert uri == 'postgresql+psycopg://travel_user:secret@db.example.com/travel'
+
+
 @pytest.fixture
 def app():
     app = create_app(TestingConfig)

@@ -107,6 +107,15 @@ Open your browser and navigate to:
 http://127.0.0.1:5000/
 ```
 
+### Deploy to Render
+1. Create a Render PostgreSQL database and link it to the web service. Render provides `DATABASE_URL`; the app converts it to the installed psycopg driver automatically.
+2. Set `SECRET_KEY` to a generated random value and `FLASK_DEBUG=0` in the service environment. Do not copy the development `.env` into Render.
+3. Use build command `pip install -r requirements.txt`.
+4. Use start command `SEED_DEMO_USERS=false python seed_data.py && gunicorn --workers 1 --threads 4 run:app`. The seed step adds sample travel content only when the database is empty, excludes the published local demo accounts, and skips safely on later restarts.
+5. Optionally set Render's health check path to `/health`.
+
+The single Gunicorn worker is intentional while the safety dispatcher runs in-process. This is suitable for a demo, not a production emergency-response service; production use needs a separately operated durable worker/queue and monitoring.
+
 ---
 
 ## 🔑 Demo Accounts for Evaluation

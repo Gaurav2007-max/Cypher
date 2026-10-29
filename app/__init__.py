@@ -1,7 +1,7 @@
 from datetime import datetime
 from sqlalchemy import inspect, text
 
-from flask import Flask, render_template, session
+from flask import Flask, jsonify, render_template, session
 from app.config import Config
 from app.extensions import db
 from app.auth_utils import get_current_user
@@ -76,6 +76,16 @@ def create_app(config_class=Config):
         db.session.rollback()
         return render_template('auth/500.html'), 500
 
+    @flask_app.get('/health')
+    def health_check():
+        try:
+            db.session.execute(text('SELECT 1'))
+        except Exception:
+            db.session.rollback()
+            flask_app.logger.exception('Render health check could not reach the database.')
+            return jsonify({'status': 'unhealthy'}), 503
+        return jsonify({'status': 'ok'})
+
     # Create tables
     with flask_app.app_context():
         import app.models  # ensure models are registered
@@ -83,7 +93,7 @@ def create_app(config_class=Config):
         story_columns = {column['name'] for column in inspect(db.engine).get_columns('stories')}
         if 'is_active' not in story_columns:
             db.session.execute(text(
-                'ALTER TABLE stories ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT 1'
+                'ALTER TABLE stories ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT TRUE'
             ))
             db.session.commit()
         action_columns = {
@@ -96,14 +106,14 @@ def create_app(config_class=Config):
             db.session.commit()
         db.session.execute(text(
             'CREATE TABLE IF NOT EXISTS app_migrations '
-            '(name VARCHAR(100) PRIMARY KEY, applied_at DATETIME NOT NULL)'
+            '(name VARCHAR(100) PRIMARY KEY, applied_at TIMESTAMP NOT NULL)'
         ))
         migrated = db.session.execute(
             text("SELECT name FROM app_migrations WHERE name = 'explicit_safety_consents_v1'")
         ).first()
         if not migrated:
             db.session.execute(text(
-                'UPDATE user_profiles SET location_tracking_enabled = 0, emergency_consent = 0'
+                'UPDATE user_profiles SET location_tracking_enabled = FALSE, emergency_consent = FALSE'
             ))
             db.session.execute(text('DELETE FROM location_samples'))
             db.session.execute(text(

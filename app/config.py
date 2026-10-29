@@ -10,6 +10,8 @@ BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 def resolve_database_uri(database_uri):
     url = make_url(database_uri)
+    if url.drivername in {'postgres', 'postgresql'}:
+        return url.set(drivername='postgresql+psycopg').render_as_string(hide_password=False)
     if (
         url.drivername.startswith('sqlite')
         and url.database
@@ -23,15 +25,21 @@ def resolve_database_uri(database_uri):
 
 
 class Config:
-    SECRET_KEY = os.getenv('SECRET_KEY') or secrets.token_hex(32)
+    SECRET_KEY = os.getenv('SECRET_KEY')
+    if os.getenv('RENDER') and not SECRET_KEY:
+        raise RuntimeError('Set a strong SECRET_KEY in the Render environment before starting the service.')
+    SECRET_KEY = SECRET_KEY or secrets.token_hex(32)
     SQLALCHEMY_DATABASE_URI = resolve_database_uri(
-        os.getenv('DATABASE_URI', f'sqlite:///{os.path.join(BASE_DIR, "traveltech.db")}')
+        os.getenv('DATABASE_URL')
+        or os.getenv('DATABASE_URI')
+        or f'sqlite:///{os.path.join(BASE_DIR, "traveltech.db")}'
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Session security
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
+    SESSION_COOKIE_SECURE = bool(os.getenv('RENDER'))
     PERMANENT_SESSION_LIFETIME = 86400  # 24 hours
     
     # SMTP / Email alerts

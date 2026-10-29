@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import os
 from app import create_app
 from app.extensions import db
 from app.models import (
@@ -6,80 +7,76 @@ from app.models import (
     Activity, CuisineItem, TransportOption
 )
 
-def seed():
-    app = create_app()
+def seed(app=None):
+    app = app or create_app()
     with app.app_context():
-        # Clean existing records
-        db.drop_all()
         db.create_all()
+        if User.query.count() or City.query.count():
+            print("Database already contains application data; skipping demo seed to preserve existing records.")
+            return False
 
-        print("Creating Users...")
-        # 1. Admin
-        admin = User(
-            username='admin',
-            email='admin@traveltech.gov.in',
-            role='admin',
-            authority_approved=True
-        )
-        admin.set_password('admin123')
-        db.session.add(admin)
+        seed_demo_users = os.getenv('SEED_DEMO_USERS', 'true').lower() in ('true', '1', 'yes')
+        tourist_profile = None
+        authority = None
+        if seed_demo_users:
+            print("Creating local demo users...")
+            admin = User(
+                username='admin',
+                email='admin@traveltech.gov.in',
+                role='admin',
+                authority_approved=True
+            )
+            admin.set_password('admin123')
 
-        # 2. Approved Authority
-        authority = User(
-            username='officer_sharma',
-            email='sharma@haryanatourism.gov.in',
-            role='authority',
-            authority_approved=True
-        )
-        authority.set_password('authority123')
-        db.session.add(authority)
+            authority = User(
+                username='officer_sharma',
+                email='sharma@haryanatourism.gov.in',
+                role='authority',
+                authority_approved=True
+            )
+            authority.set_password('authority123')
 
-        # 3. Pending Authority (to test admin approval workflow)
-        pending_auth = User(
-            username='officer_verma',
-            email='verma@uptourism.gov.in',
-            role='authority',
-            authority_approved=False
-        )
-        pending_auth.set_password('authority123')
-        db.session.add(pending_auth)
+            pending_auth = User(
+                username='officer_verma',
+                email='verma@uptourism.gov.in',
+                role='authority',
+                authority_approved=False
+            )
+            pending_auth.set_password('authority123')
 
-        # 4. Demo Tourist
-        tourist = User(
-            username='alex_traveler',
-            email='alex.traveler@example.com',
-            role='tourist',
-            authority_approved=False
-        )
-        tourist.set_password('tourist123')
-        db.session.add(tourist)
-        db.session.flush()
+            tourist = User(
+                username='alex_traveler',
+                email='alex.traveler@example.com',
+                role='tourist',
+                authority_approved=False
+            )
+            tourist.set_password('tourist123')
+            db.session.add_all([admin, authority, pending_auth, tourist])
+            db.session.flush()
 
-        # Profiles
-        tourist_profile = UserProfile(
-            user_id=tourist.id,
-            full_name='Alex Rivera',
-            nationality='International / Explorer',
-            phone='+91 98765 43210',
-            emergency_consent=False,
-            sensor_consent=False,
-            location_tracking_enabled=False,
-            audio_speech_rate=1.0,
-            proximity_radius_meters=50
-        )
-        db.session.add(tourist_profile)
-
-        # Emergency Contact (with agency support for international tourist)
-        contact = EmergencyContact(
-            user_id=tourist.id,
-            name='Global Care Travel Assistance',
-            email='emergency.desk@globalcare-assist.com',
-            phone='+1 800 555 0199',
-            relationship='Travel Assistance Agency',
-            is_agency=True,
-            is_primary=True
-        )
-        db.session.add(contact)
+            tourist_profile = UserProfile(
+                user_id=tourist.id,
+                full_name='Alex Rivera',
+                nationality='International / Explorer',
+                phone='+91 98765 43210',
+                emergency_consent=False,
+                sensor_consent=False,
+                location_tracking_enabled=False,
+                audio_speech_rate=1.0,
+                proximity_radius_meters=50
+            )
+            db.session.add(tourist_profile)
+            db.session.add(EmergencyContact(
+                user_id=tourist.id,
+                name='Global Care Travel Assistance',
+                email='emergency.desk@globalcare-assist.com',
+                phone='+1 800 555 0199',
+                relationship='Travel Assistance Agency',
+                is_agency=True,
+                is_primary=True
+            ))
+        else:
+            print("Skipping demo accounts; seeding sample travel content only.")
 
         print("Seeding Cities...")
         # Cities
@@ -131,7 +128,8 @@ def seed():
         db.session.add_all([c_fbd, c_shimla, c_agra, c_jaipur, c_varanasi])
         db.session.flush()
 
-        tourist_profile.preferred_city_id = c_fbd.id
+        if tourist_profile:
+            tourist_profile.preferred_city_id = c_fbd.id
 
         print("Seeding Faridabad Destinations & Stories...")
         # Faridabad Destinations
@@ -154,7 +152,7 @@ def seed():
             crowd_updated_at=datetime.utcnow(),
             crowd_expires_at=None,
             crowd_explanation=None,
-            crowd_updated_by_id=authority.id
+            crowd_updated_by_id=authority.id if authority else None
         )
 
         d_nahar_singh = Destination(
@@ -613,6 +611,7 @@ def seed():
 
         db.session.commit()
         print("Database seeded successfully with rich travel data!")
+        return True
 
 if __name__ == '__main__':
     seed()
