@@ -70,6 +70,24 @@ html {
     scroll-padding-top: 5.5rem;
 }
 
+.skip-link {
+    position: fixed;
+    top: 0.75rem;
+    left: 0.75rem;
+    z-index: 2000;
+    padding: 0.7rem 1rem;
+    border-radius: 0.75rem;
+    color: #fff;
+    background: var(--primary-hover);
+    transform: translateY(-180%);
+    transition: transform 0.15s ease;
+}
+
+.skip-link:focus {
+    color: #fff;
+    transform: translateY(0);
+}
+
 main {
     min-width: 0;
 }

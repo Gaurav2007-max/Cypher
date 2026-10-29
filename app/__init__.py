@@ -53,6 +53,7 @@ def create_app(config_class=Config):
     from app.routes.api_safety import api_safety_bp
     from app.routes.api_feedback import api_feedback_bp
     from app.routes.api_routes import api_routes_bp
+    from app.routes.api_ml import api_ml_bp
     from app.services.safety_dispatch import start_safety_scheduler
 
     flask_app.register_blueprint(auth_bp)
@@ -63,19 +64,26 @@ def create_app(config_class=Config):
     flask_app.register_blueprint(api_safety_bp)
     flask_app.register_blueprint(api_feedback_bp)
     flask_app.register_blueprint(api_routes_bp)
+    flask_app.register_blueprint(api_ml_bp)
 
     # Error handlers
     @flask_app.errorhandler(403)
     def forbidden_error(error):
+        if request.path.startswith('/api/'):
+            return jsonify({'error': 'Access forbidden.'}), 403
         return render_template('auth/403.html'), 403
 
     @flask_app.errorhandler(404)
     def not_found_error(error):
+        if request.path.startswith('/api/'):
+            return jsonify({'error': 'API endpoint or resource not found.'}), 404
         return render_template('auth/404.html'), 404
 
     @flask_app.errorhandler(500)
     def internal_error(error):
         db.session.rollback()
+        if request.path.startswith('/api/'):
+            return jsonify({'error': 'An internal server error occurred.'}), 500
         return render_template('auth/500.html'), 500
 
     @flask_app.errorhandler(429)

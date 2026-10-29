@@ -9,6 +9,26 @@ from app.auth_utils import login_required, get_current_user
 
 tourist_bp = Blueprint('tourist', __name__)
 
+FARIDABAD_DEMO_CROWD = {
+    'surajkund': ('Overcrowded', 'Simulated festival-day visitor peak.'),
+    'raja nahar singh': ('Crowded', 'Simulated heritage-tour group arrival.'),
+    'badkhal lake': ('Crowded', 'Simulated busy weekend at the sunset viewpoint.'),
+    'asola bhatti': ('Moderate', 'Simulated steady trail activity.'),
+    'iskcon faridabad': ('Overcrowded', 'Simulated evening prayer rush.'),
+}
+
+
+def _demo_crowd_for_destination(city, destination):
+    if not city or city.name.casefold() != 'faridabad':
+        return None
+
+    name = destination.name.casefold()
+    for keyword, (status, explanation) in FARIDABAD_DEMO_CROWD.items():
+        if keyword in name:
+            return {'status': status, 'explanation': explanation}
+    return None
+
+
 @tourist_bp.route('/dashboard')
 @login_required
 def dashboard():
@@ -31,6 +51,7 @@ def dashboard():
 
     destinations = []
     destinations_dict_list = []
+    demo_crowd_statuses = {}
     hidden_gems = []
     activities = []
     cuisine_items = []
@@ -38,7 +59,14 @@ def dashboard():
 
     if current_city:
         destinations = Destination.query.filter_by(city_id=current_city.id, is_active=True).all()
-        destinations_dict_list = [d.to_dict() for d in destinations]
+        for destination in destinations:
+            destination_data = destination.to_dict()
+            demo_crowd = _demo_crowd_for_destination(current_city, destination)
+            if demo_crowd:
+                destination_data['demo_crowd_status'] = demo_crowd['status']
+                destination_data['demo_crowd_explanation'] = demo_crowd['explanation']
+                demo_crowd_statuses[destination.id] = demo_crowd['status']
+            destinations_dict_list.append(destination_data)
         hidden_gems = [d for d in destinations if d.is_hidden_gem]
         activities = Activity.query.filter_by(city_id=current_city.id, is_active=True).all()
         cuisine_items = CuisineItem.query.filter_by(city_id=current_city.id, is_active=True).all()
@@ -58,6 +86,11 @@ def dashboard():
         current_city=current_city,
         destinations=destinations,
         destinations_json=destinations_dict_list,
+        demo_crowd_statuses=demo_crowd_statuses,
+        demo_crowd_busy_count=sum(
+            status in ('Crowded', 'Overcrowded')
+            for status in demo_crowd_statuses.values()
+        ),
         hidden_gems=hidden_gems,
         activities=activities,
         cuisine_items=cuisine_items,

@@ -72,8 +72,10 @@ class TravelMap {
         this.clearMarkers();
 
         destinations.forEach(dest => {
-            const color = this.getCrowdColor(dest.crowd_status);
-            const isOvercrowded = dest.crowd_status === 'Overcrowded';
+            const crowdStatus = dest.demo_crowd_status || dest.crowd_status;
+            const isDemoCrowd = Boolean(dest.demo_crowd_status);
+            const color = this.getCrowdColor(crowdStatus);
+            const isOvercrowded = crowdStatus === 'Overcrowded';
 
             // Custom SVG Pin Icon
             const iconHtml = `
@@ -110,17 +112,19 @@ class TravelMap {
                     ${dest.image_url ? `<img src="${dest.image_url}" style="width: 100%; height: 110px; object-fit: cover; border-radius: 8px 8px 0 0; margin-bottom: 8px;" alt="${dest.name}" />` : ''}
                     <h6 style="margin-bottom: 4px; font-weight: 700;">${dest.name}</h6>
                     <div style="margin-bottom: 8px;">
-                        <span class="badge badge-crowd-${dest.crowd_status.toLowerCase()}">${dest.crowd_status}</span>
+                        <span class="badge badge-crowd-${crowdStatus.toLowerCase()}">${crowdStatus}</span>
+                        ${isDemoCrowd ? '<span class="badge bg-dark">DEMO · NOT LIVE</span><div class="small text-muted mt-1">Authority report: ' + dest.crowd_status + '</div>' : ''}
                         ${dest.is_hidden_gem ? '<span class="badge bg-warning text-dark"><i class="bi bi-gem me-1"></i>Hidden Gem</span>' : ''}
                     </div>
+                    ${isDemoCrowd && dest.demo_crowd_explanation ? `<p class="small text-warning-emphasis mb-2">${dest.demo_crowd_explanation}</p>` : ''}
                     <p style="font-size: 0.8rem; color: #555; margin-bottom: 8px;">${dest.description.substring(0, 85)}...</p>
                     <div style="display: flex; gap: 4px; flex-wrap: wrap;">
                         <button class="btn btn-sm btn-outline-danger" onclick="window.travelMap.requestDirections(${dest.latitude}, ${dest.longitude}, '${dest.name.replace(/'/g, "\\'")}')">
                             <i class="bi bi-compass me-1"></i>Directions
                         </button>
-                        ${isOvercrowded || dest.crowd_status === 'Crowded' ? `
+                        ${isOvercrowded || crowdStatus === 'Crowded' ? `
                             <button class="btn btn-sm btn-danger" onclick="window.openSmartAlternatives(${dest.id})">
-                                <i class="bi bi-shuffle me-1"></i>Avoid Crowd
+                                <i class="bi bi-shuffle me-1"></i>${isDemoCrowd ? 'Authority alternatives' : 'Avoid Crowd'}
                             </button>
                         ` : ''}
                     </div>

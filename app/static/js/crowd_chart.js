@@ -41,6 +41,7 @@ let _currentDestId = null;
  */
 window.openCrowdForecastModal = function (destId, destName) {
   _currentDestId = destId;
+  const requestedDestId = destId;
 
   // Update modal title
   const titleEl = document.getElementById("crowdForecastModalLabel");
@@ -51,15 +52,33 @@ window.openCrowdForecastModal = function (destId, destName) {
 
   // Open modal first for responsive feel
   const modalEl = document.getElementById("crowdForecastModal");
-  const modal   = bootstrap.Modal.getOrCreate(modalEl);
+  const modal   = bootstrap.Modal.getOrCreateInstance(modalEl);
   modal.show();
 
   // Parallel fetch: daily + weekly
+  const fetchJson = (url) => fetch(url, { headers: { Accept: "application/json" } }).then(async (response) => {
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      if (response.redirected && /\/login(?:\?|$)/.test(response.url)) {
+        throw new Error("Your session has expired. Sign in again, then reload the forecast.");
+      }
+      throw new Error(`The crowd forecast service returned an unexpected page (HTTP ${response.status}). Please reload and try again.`);
+    }
+    const body = await response.json();
+    if (!response.ok || body.error) throw new Error(body.error || `Request failed (${response.status})`);
+    return body;
+  });
+
   Promise.all([
-    fetch(`/api/ml/crowd-forecast/${destId}`).then((r) => r.json()),
-    fetch(`/api/ml/crowd-weekly/${destId}`).then((r) => r.json()),
+    fetchJson(`/api/ml/crowd-forecast/${destId}`),
+    fetchJson(`/api/ml/crowd-weekly/${destId}`),
   ])
     .then(([daily, weekly]) => {
+      if (_currentDestId !== requestedDestId) return;
+      if (!Array.isArray(daily.crowd_levels) || daily.crowd_levels.length !== 24 ||
+          !weekly.weekly_forecast?.days?.length) {
+        throw new Error("The forecast response was incomplete.");
+      }
       _renderDailyChart(daily);
       _renderWeeklyHeatmap(weekly);
       _renderMetaBadges(daily, weekly);
@@ -67,7 +86,9 @@ window.openCrowdForecastModal = function (destId, destName) {
     })
     .catch((err) => {
       console.error("Crowd forecast fetch error:", err);
-      _showError("Failed to load crowd forecast. Please try again.");
+      if (_currentDestId === requestedDestId) {
+        _showError(err.message || "Failed to load crowd forecast. Please try again.");
+      }
     });
 };
 

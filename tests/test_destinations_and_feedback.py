@@ -71,6 +71,34 @@ def test_city_destinations_filtering(client):
     assert len(destinations) >= 1
     assert destinations[0]['name'] == 'Surajkund'
 
+def test_faridabad_demo_crowd_is_labeled_and_display_only(client):
+    client.post('/login', data={'identifier': 'travel_user', 'password': 'pass123'})
+
+    dashboard = client.get('/dashboard')
+    page = dashboard.get_data(as_text=True)
+    assert dashboard.status_code == 200
+    assert 'Busy-weekend demo scenario' in page
+    assert '1 of 1 Faridabad demo destinations' in page
+    assert 'not live counts or authority reports' in page
+    assert 'DEMO' in page
+
+    with client.application.app_context():
+        destination = Destination.query.filter_by(name='Surajkund').first()
+        destination_id = destination.id
+        city_id = destination.city_id
+        assert destination.crowd_status == 'Normal'
+
+    api_response = client.get(f'/api/destinations?city_id={city_id}')
+    api_destination = api_response.get_json()[0]
+    assert api_destination['id'] == destination_id
+    assert api_destination['crowd_status'] == 'Normal'
+    assert 'demo_crowd_status' not in api_destination
+
+    with client.application.app_context():
+        agra_id = City.query.filter_by(name='Agra').first().id
+    other_city_page = client.get(f'/dashboard?city_id={agra_id}')
+    assert 'Busy-weekend demo scenario' not in other_city_page.get_data(as_text=True)
+
 def test_proximity_story_trigger(client):
     client.post('/login', data={'identifier': 'travel_user', 'password': 'pass123'})
 

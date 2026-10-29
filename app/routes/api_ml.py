@@ -109,6 +109,8 @@ def crowd_forecast(dest_id: int):
 
     try:
         profile = predict_daily_profile(cat_id, base_pop, date_str)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
         logger.exception("crowd_forecast error for dest_id=%s", dest_id)
         return jsonify({"error": "Prediction failed", "detail": str(e)}), 500
@@ -156,6 +158,8 @@ def crowd_weekly(dest_id: int):
 
     try:
         weekly = predict_weekly_profile(cat_id, base_pop, start_str)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
         logger.exception("crowd_weekly error for dest_id=%s", dest_id)
         return jsonify({"error": "Prediction failed", "detail": str(e)}), 500

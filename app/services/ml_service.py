@@ -117,10 +117,11 @@ def _traffic_for_hour(hour: int, is_weekend: bool) -> float:
 def _heuristic_crowd(dest_category: int, dest_base_popularity: float,
                      hour: int, dow: int, doy: int, month: int,
                      weather_code: int, temp: float, humidity: float,
-                     rainfall: float, traffic: float) -> dict:
+                     rainfall: float, traffic: float,
+                     day_of_month: int | None = None) -> dict:
     """Simple scoring heuristic — used when model is not available."""
     is_weekend     = int(dow >= 5)
-    is_holiday     = int((month, datetime.now().day) in INDIAN_HOLIDAYS)
+    is_holiday     = int((month, day_of_month or datetime.now().day) in INDIAN_HOLIDAYS)
     is_festival    = int(month in FESTIVAL_MONTHS)
     is_peak_hour   = int(9 <= hour <= 18)
 
@@ -152,7 +153,7 @@ def _heuristic_crowd(dest_category: int, dest_base_popularity: float,
 def predict_crowd(dest_category: int, dest_base_popularity: float,
                   hour: int, dow: int, doy: int, month: int,
                   weather_code: int, temp: float, humidity: float,
-                  rainfall: float, traffic: float) -> dict:
+                  rainfall: float, traffic: float, day_of_month: int | None = None) -> dict:
     """
     Predict crowd level for a single (dest, time, weather, traffic) combination.
 
@@ -161,17 +162,20 @@ def predict_crowd(dest_category: int, dest_base_popularity: float,
          color: str, data_source: 'ml_model'|'heuristic_fallback'}
     """
     model, meta = _load_model()
+    # Calendar features must come from the forecast date, not the server's current date.
+    day_of_month = day_of_month or datetime.now().day
+    is_holiday = int((month, day_of_month) in INDIAN_HOLIDAYS)
 
     if model is None:
         return _heuristic_crowd(dest_category, dest_base_popularity, hour, dow, doy,
-                                month, weather_code, temp, humidity, rainfall, traffic)
+                                month, weather_code, temp, humidity, rainfall, traffic, day_of_month)
 
     features = meta["features"]
     X = [[
         dest_category, dest_base_popularity,
         hour, dow, doy, month,
         int(dow >= 5),
-        int((month, datetime.now().day) in INDIAN_HOLIDAYS),
+        is_holiday,
         int(month in FESTIVAL_MONTHS),
         weather_code, temp, humidity, rainfall, traffic
     ]]
@@ -185,7 +189,7 @@ def predict_crowd(dest_category: int, dest_base_popularity: float,
         "day_of_year": doy,
         "month": month,
         "is_weekend": int(dow >= 5),
-        "is_holiday": int((month, datetime.now().day) in INDIAN_HOLIDAYS),
+        "is_holiday": is_holiday,
         "is_festival_season": int(month in FESTIVAL_MONTHS),
         "weather_code": weather_code,
         "temperature_c": temp,
@@ -204,7 +208,7 @@ def predict_crowd(dest_category: int, dest_base_popularity: float,
     except Exception as e:
         logger.error("ML predict failed: %s", e)
         return _heuristic_crowd(dest_category, dest_base_popularity, hour, dow, doy,
-                                month, weather_code, temp, humidity, rainfall, traffic)
+                                month, weather_code, temp, humidity, rainfall, traffic, day_of_month)
 
     return {
         "level": level,
@@ -227,8 +231,8 @@ def predict_daily_profile(dest_category: int, dest_base_popularity: float,
     if date_str:
         try:
             dt = datetime.strptime(date_str, "%Y-%m-%d")
-        except ValueError:
-            dt = datetime.now()
+        except ValueError as exc:
+            raise ValueError("date must use YYYY-MM-DD format") from exc
     else:
         dt = datetime.now()
 
@@ -244,7 +248,7 @@ def predict_daily_profile(dest_category: int, dest_base_popularity: float,
         pred = predict_crowd(
             dest_category, dest_base_popularity,
             hour, dow, doy, month,
-            wcode, temp, hum, rain, traffic
+            wcode, temp, hum, rain, traffic, day_of_month=dt.day
         )
         pred["hour"] = hour
         pred["hour_label"] = f"{hour:02d}:00"
@@ -266,8 +270,8 @@ def predict_weekly_profile(dest_category: int, dest_base_popularity: float,
     if start_date_str:
         try:
             start = datetime.strptime(start_date_str, "%Y-%m-%d")
-        except ValueError:
-            start = datetime.now().replace(hour=0, minute=0, second=0)
+        except ValueError as exc:
+            raise ValueError("start must use YYYY-MM-DD format") from exc
     else:
         start = datetime.now().replace(hour=0, minute=0, second=0)
 
@@ -288,7 +292,7 @@ def predict_weekly_profile(dest_category: int, dest_base_popularity: float,
             pred = predict_crowd(
                 dest_category, dest_base_popularity,
                 hour, dow, doy, month,
-                wcode, temp, hum, rain, traffic
+                wcode, temp, hum, rain, traffic, day_of_month=dt.day
             )
             pred["hour"] = hour
             pred["hour_label"] = f"{hour:02d}:00"
