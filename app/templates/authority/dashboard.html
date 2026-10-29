@@ -38,6 +38,7 @@
                     <p class="small text-muted mb-3">{{ dest.crowd_explanation or 'Heavy visitor congestion.' }}</p>
                     <div class="d-flex gap-2 mt-auto">
                         <form method="POST" action="{{ url_for('authority.clear_alert', dest_id=dest.id) }}" class="w-100">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-sm btn-outline-success w-100 rounded-pill fw-semibold">
                                 <i class="bi bi-check-circle me-1"></i>Clear Alert (Set Normal)
                             </button>
@@ -131,6 +132,7 @@
                 <h6 id="modalDestName" class="text-primary mb-3"></h6>
 
                 <form method="POST" action="{{ url_for('authority.update_crowd') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="destination_id" id="modalDestId">
                     
                     <div class="mb-3">

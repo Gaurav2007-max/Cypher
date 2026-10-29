@@ -80,11 +80,13 @@
                         <td class="small text-muted">{{ auth_user.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
                         <td>
                             <form method="POST" action="{{ url_for('admin.approve_authority', user_id=auth_user.id) }}" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-sm btn-success rounded-pill px-3 fw-bold">
                                     <i class="bi bi-check-lg me-1"></i>Approve Authority
                                 </button>
                             </form>
                             <form method="POST" action="{{ url_for('admin.reject_authority', user_id=auth_user.id) }}" class="d-inline ms-1">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3">
                                     Decline
                                 </button>
@@ -144,10 +146,12 @@
                                 {% if u.role == 'authority' %}
                                     {% if not u.authority_approved %}
                                     <form method="POST" action="{{ url_for('admin.approve_authority', user_id=u.id) }}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button class="btn btn-xs btn-outline-success rounded-pill px-2 py-1" style="font-size:0.75rem;">Approve</button>
                                     </form>
                                     {% else %}
                                     <form method="POST" action="{{ url_for('admin.revoke_authority', user_id=u.id) }}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button class="btn btn-xs btn-outline-warning rounded-pill px-2 py-1" style="font-size:0.75rem;">Revoke</button>
                                     </form>
                                     {% endif %}
@@ -155,6 +159,7 @@
 
                                 {% if u.id != current_user.id %}
                                 <form method="POST" action="{{ url_for('admin.toggle_user_status', user_id=u.id) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button class="btn btn-xs btn-outline-danger rounded-pill px-2 py-1" style="font-size:0.75rem;">
                                         {{ 'Deactivate' if u.is_active else 'Activate' }}
                                     </button>
@@ -192,6 +197,7 @@
                         <td class="small text-muted">{{ d.last_verified_at.strftime('%Y-%m-%d') if d.last_verified_at else 'Unverified' }}</td>
                         <td>
                             <form method="POST" action="{{ url_for('admin.verify_destination', dest_id=d.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-sm btn-outline-success rounded-pill px-3">
                                     <i class="bi bi-check2-all me-1"></i>Verify Today
                                 </button>
@@ -228,6 +234,7 @@
                         <td class="small text-muted">{{ fb.description }}</td>
                         <td>
                             <form method="POST" action="{{ url_for('admin.resolve_feedback', report_id=fb.id) }}" class="d-flex gap-1">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button name="status" value="resolved" class="btn btn-xs btn-success rounded-pill px-2 py-1" style="font-size:0.75rem;">Resolve</button>
                                 <button name="status" value="dismissed" class="btn btn-xs btn-outline-secondary rounded-pill px-2 py-1" style="font-size:0.75rem;">Dismiss</button>
                             </form>

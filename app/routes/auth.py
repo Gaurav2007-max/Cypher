@@ -3,7 +3,7 @@ from hashlib import sha256
 import secrets
 from email.utils import parseaddr
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify
-from app.extensions import db
+from app.extensions import db, limiter
 from app.models.user import User, UserProfile, EmergencyContact, EmergencyContactVerification
 from app.models.city import City
 from app.models.safety import LocationSample
@@ -25,6 +25,7 @@ def index():
     return redirect(url_for('auth.login'))
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
+@limiter.limit('5 per minute', methods=['POST'])
 def login():
     if get_current_user():
         return redirect(url_for('auth.index'))
@@ -71,6 +72,7 @@ def login():
     return render_template('auth/login.html')
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
+@limiter.limit('5 per hour', methods=['POST'])
 def register():
     if get_current_user():
         return redirect(url_for('auth.index'))
@@ -163,7 +165,7 @@ def register():
 
     return render_template('auth/register.html', cities=cities)
 
-@auth_bp.route('/logout')
+@auth_bp.route('/logout', methods=['POST'])
 def logout():
     user = get_current_user()
     if user:

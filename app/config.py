@@ -25,6 +25,7 @@ def resolve_database_uri(database_uri):
 
 
 class Config:
+    WTF_CSRF_ENABLED = True
     SECRET_KEY = os.getenv('SECRET_KEY')
     if os.getenv('RENDER') and not SECRET_KEY:
         raise RuntimeError('Set a strong SECRET_KEY in the Render environment before starting the service.')
@@ -41,6 +42,13 @@ class Config:
     SESSION_COOKIE_SAMESITE = 'Lax'
     SESSION_COOKIE_SECURE = bool(os.getenv('RENDER'))
     PERMANENT_SESSION_LIFETIME = 86400  # 24 hours
+
+    # Configure Redis for shared limits when running multiple application workers.
+    RATELIMIT_ENABLED = True
+    RATELIMIT_STORAGE_URI = os.getenv('RATELIMIT_STORAGE_URI', 'memory://')
+    RATELIMIT_DEFAULT = '200 per hour'
+    RATELIMIT_APPLICATION = '1000 per hour'
+    RATELIMIT_HEADERS_ENABLED = True
     
     # SMTP / Email alerts
     SMTP_TEST_MODE = os.getenv('SMTP_TEST_MODE', 'True').lower() in ('true', '1', 'yes')

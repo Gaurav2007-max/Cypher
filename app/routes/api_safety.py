@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import math
 from flask import Blueprint, request, jsonify
-from app.extensions import db
+from app.extensions import db, limiter
 from app.models.safety import CheckInSession, EmergencyIncident, LocationSample, PendingSafetyAction
 from app.auth_utils import login_required, get_current_user
 from app.services.audit_service import AuditService
@@ -11,6 +11,7 @@ api_safety_bp = Blueprint('api_safety', __name__, url_prefix='/api/safety')
 
 @api_safety_bp.route('/sos/prepare', methods=['POST'])
 @login_required
+@limiter.limit('5 per minute')
 def prepare_sos():
     user = get_current_user()
     if not user.profile or not user.profile.emergency_consent:
@@ -117,6 +118,7 @@ def reject_direct_sos():
 
 @api_safety_bp.route('/checkin/start', methods=['POST'])
 @login_required
+@limiter.limit('10 per minute')
 def start_checkin():
     user = get_current_user()
     data = request.get_json() or {}
@@ -174,6 +176,7 @@ def start_checkin():
 
 @api_safety_bp.route('/checkin/help', methods=['POST'])
 @login_required
+@limiter.limit('5 per minute')
 def request_checkin_help():
     user = get_current_user()
     if not user.profile or not user.profile.emergency_consent:
@@ -264,6 +267,7 @@ def get_checkin_status():
 
 @api_safety_bp.route('/location-sample', methods=['POST'])
 @login_required
+@limiter.limit('60 per minute')
 def post_location_sample():
     user = get_current_user()
     if not user.profile or not user.profile.location_tracking_enabled:

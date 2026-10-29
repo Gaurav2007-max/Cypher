@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from app.extensions import db
+from app.extensions import limiter
 from app.models.feedback import FeedbackReport
 from app.models.destination import Destination
 from app.auth_utils import login_required, get_current_user
@@ -9,6 +10,7 @@ api_feedback_bp = Blueprint('api_feedback', __name__, url_prefix='/api/feedback'
 
 @api_feedback_bp.route('/submit', methods=['POST'])
 @login_required
+@limiter.limit('5 per hour')
 def submit_feedback():
     user = get_current_user()
     data = request.get_json() or {}

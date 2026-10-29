@@ -1,11 +1,13 @@
 import math
 import requests
 from flask import Blueprint, request, jsonify
+from app.extensions import limiter
 from app.services.crowd_service import haversine_distance
 
 api_routes_bp = Blueprint('api_routes', __name__, url_prefix='/api/routes')
 
 @api_routes_bp.route('/calculate', methods=['POST'])
+@limiter.limit('30 per minute')
 def calculate_route():
     data = request.get_json() or {}
     try:

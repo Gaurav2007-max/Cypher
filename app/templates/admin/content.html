@@ -31,6 +31,7 @@
                             </div>
                         </div>
                         <form method="POST" action="{{ url_for('admin.toggle_content', kind=kind, item_id=entry.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button class="btn btn-sm btn-outline-secondary rounded-pill" type="submit">{{ 'Hide' if entry.is_active else 'Show' }}</button>
                         </form>
                     </div>
@@ -44,6 +45,7 @@
 
         <div class="col-lg-5">
             <form method="POST" class="card border-0 shadow-sm rounded-4 p-4">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="id" value="{{ item.id if item else '' }}">
                 <h2 class="h5 fw-bold">{{ 'Edit' if item else 'Add' }} {{ kind|title }}</h2>
                 {% if kind in ('destinations', 'activities', 'cuisine') %}

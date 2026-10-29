@@ -16,11 +16,13 @@
                 </p>
                 <div class="d-flex justify-content-center gap-2 mt-3">
                     <a href="{{ url_for('tourist.dashboard') }}" class="btn btn-outline-dark rounded-pill px-4">Browse as Guest</a>
-                    <a href="{{ url_for('auth.logout') }}" class="btn btn-danger rounded-pill px-4">Sign Out</a>
+                    <form method="POST" action="{{ url_for('auth.logout') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-danger rounded-pill px-4">Sign Out</button>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
-

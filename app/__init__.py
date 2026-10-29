@@ -1,9 +1,9 @@
 from datetime import datetime
 from sqlalchemy import inspect, text
 
-from flask import Flask, jsonify, render_template, session
+from flask import Flask, jsonify, render_template, request, session
 from app.config import Config
-from app.extensions import db
+from app.extensions import csrf, db, limiter
 from app.auth_utils import get_current_user
 
 
@@ -20,6 +20,8 @@ def create_app(config_class=Config):
 
     # Initialize extensions
     db.init_app(flask_app)
+    csrf.init_app(flask_app)
+    limiter.init_app(flask_app)
 
     # Context processors for templates
     @flask_app.context_processor
@@ -75,6 +77,14 @@ def create_app(config_class=Config):
     def internal_error(error):
         db.session.rollback()
         return render_template('auth/500.html'), 500
+
+    @flask_app.errorhandler(429)
+    def rate_limit_error(error):
+        response = error.get_response()
+        if request.path.startswith('/api/'):
+            response.set_data(jsonify({'error': 'Too many requests. Please try again later.'}).get_data())
+            response.content_type = 'application/json'
+        return response
 
     @flask_app.get('/health')
     def health_check():

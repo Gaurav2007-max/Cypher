@@ -93,5 +93,6 @@ def safety_center():
         contact=primary_contact,
         active_checkin=active_checkin,
         sensor_consent=bool(user.profile and user.profile.sensor_consent),
+        location_consent=bool(user.profile and user.profile.location_tracking_enabled),
         emergency_consent=bool(user.profile and user.profile.emergency_consent)
     )

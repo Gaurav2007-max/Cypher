@@ -35,8 +35,8 @@ A full-stack, responsive web application engineered in Python with Flask that en
 ### 5. Tourist Safety & Emergency Response
 - **Emergency Contacts:** Supports personal emergency contacts as well as International Travel Assistance Agencies / Consulate Desks for foreign tourists.
 - **Manual SOS:** Stores a server-side pending action with a 30-second cancellation window, so dispatch is not controlled by a browser timer. The worker records an incident and attempts SMTP delivery after the deadline; incident recording and email delivery are reported separately. Live SMTP requires an explicitly verified emergency-contact email.
-- **Potential Fall & Impact Detection:** An opt-in impact heuristic. Tourists must enable sensor consent in their profile, then explicitly enable motion sensing from the Safety Center; supported browsers may request device permission. A detected impact prompts a 15-second cancel window, followed by the SOS 30-second cancellation window. This is not guaranteed fall detection and can miss falls or trigger on other impacts. Includes a "Simulate Fall" button for desktop testing.
-- **10-Minute Rolling Location History Trail:** Requires saved location consent and a separate explicit GPS action. Samples older than 10 minutes are automatically purged; opting out deletes stored samples. Coordinates are snapshotted into incident records when a queued alert is processed.
+- **Potential Fall & Impact Detection:** Requires saved location and motion consent, then one explicit enable action in the Safety Center. The conservative heuristic ignores small jolts and only prompts after a near-free-fall signal followed by a strong impact; it is not medical or guaranteed fall detection. Alerts attempt repeated audible tones and vibration, subject to browser/device support and settings. Browser sensor monitoring may pause when the phone is locked or the page is suspended; once an SOS is queued, its countdown and dispatch continue server-side.
+- **10-Minute Rolling Location History Trail:** Requires saved location consent and the explicit Safety Center monitoring action. Samples older than 10 minutes are automatically purged; opting out deletes stored samples. Coordinates are snapshotted into incident records when a queued alert is processed.
 - **Safety Check-in Timer:** Supports minute-based timers. On expiry, the app provides a 15-second response period and then a 30-second server-side cancellation period before queuing the alert. Users can confirm safety during either period.
 - **Privacy First:** Explicit opt-in switches, coordinates never exposed to other tourists, zero credential leaks.
 
@@ -116,6 +116,9 @@ http://127.0.0.1:5000/
 
 The single Gunicorn worker is intentional while the safety dispatcher runs in-process. This is suitable for a demo, not a production emergency-response service; production use needs a separately operated durable worker/queue and monitoring.
 
+### Request Protection
+All state-changing form and JSON requests require a session CSRF token. The app applies per-IP rate limits to every endpoint, with tighter limits on sign-in, registration, feedback, routing, and safety actions. Limits use in-memory storage by default, which is suitable for local development or a single process only. For multiple workers or instances, set `RATELIMIT_STORAGE_URI` to a shared Redis URL so limits are consistent across processes.
+
 ---
 
 ## 🔑 Demo Accounts for Evaluation
@@ -169,7 +172,7 @@ Cypher 2.0/
 ├── app/
 │   ├── __init__.py              # Flask app factory, blueprints, error handlers
 │   ├── config.py                # Environment & application configurations
-│   ├── extensions.py            # Shared SQLAlchemy instance
+│   ├── extensions.py            # Shared database, CSRF, and rate-limit extensions
 │   ├── auth_utils.py            # RBAC decorators (@login_required, @role_required)
 │   ├── models/
 │   │   ├── __init__.py          # Exported model registry
@@ -240,8 +243,9 @@ Cypher 2.0/
 ## 🔒 Security & Privacy Guarantees
 
 1. **Role Enforcement on Every Operation:** Authority operations (`/authority/update-crowd`, `/clear-alert`) and Admin routes (`/admin/*`) strictly verify server-side session credentials via `@role_required`. Client-side tampering is completely blocked.
-2. **Data Minimization:** Rolling location history samples are automatically purged beyond the 10-minute retention window during normal tracking.
-3. **Emergency Transparency:** Location-history samples require saved consent and an explicit GPS action. A one-time fix may be requested after a user explicitly starts SOS. Manual SOS alerts wait 30 seconds; unattended check-ins wait for the user response window and another 30 seconds. Coordinates are never exposed to other tourists.
-4. **Emergency Email Verification:** Live alerts are not sent to unverified contacts. Test mode records incidents but never sends email. SMTP acceptance does not guarantee delivery to the recipient's inbox.
-5. **Dispatcher Scope:** Pending actions are stored in the database and processed by a daemon thread in the Flask process, so browser closure does not cancel them. Pending rows survive an application restart, but a process crash during SMTP dispatch can leave an action requiring manual recovery; this is not a multi-worker durable task queue. Use a dedicated worker/service for production.
-6. **Safe Fallbacks:** The platform operates without external SMTP credentials in safe Test Mode or when GPS permissions are withheld, using Virtual Exploration Mode.
+2. **Request Protection:** Unsafe requests require a session CSRF token. Per-IP request limits apply globally, with stricter thresholds for authentication, feedback, route calculation, and safety actions; configure shared Redis storage for multi-worker deployments.
+3. **Data Minimization:** Rolling location history samples are automatically purged beyond the 10-minute retention window during normal tracking.
+4. **Emergency Transparency:** Location-history samples require saved consent and an explicit GPS action. A one-time fix may be requested after a user explicitly starts SOS. Manual SOS alerts wait 30 seconds; unattended check-ins wait for the user response window and another 30 seconds. Coordinates are never exposed to other tourists.
+5. **Emergency Email Verification:** Live alerts are not sent to unverified contacts. Test mode records incidents but never sends email. SMTP acceptance does not guarantee delivery to the recipient's inbox.
+6. **Dispatcher Scope:** Pending actions are stored in the database and processed by a daemon thread in the Flask process, so browser closure does not cancel them. Pending rows survive an application restart, but a process crash during SMTP dispatch can leave an action requiring manual recovery; this is not a multi-worker durable task queue. Use a dedicated worker/service for production.
+7. **Safe Fallbacks:** The platform operates without external SMTP credentials in safe Test Mode or when GPS permissions are withheld, using Virtual Exploration Mode.

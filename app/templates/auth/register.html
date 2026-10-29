@@ -22,6 +22,7 @@
 
                     <div class="card-body p-4 pt-0">
                         <form method="POST" action="{{ url_for('auth.register') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             
                             <!-- Role Selection Toggle -->
                             <div class="mb-4 text-center">
@@ -144,4 +145,3 @@ function toggleRoleFields(role) {
 }
 </script>
 {% endblock %}
-

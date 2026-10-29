@@ -105,7 +105,7 @@
                     <span class="badge bg-secondary-subtle text-secondary">Opt-in Motion Heuristic</span>
                 </div>
                 <p class="text-muted small">
-                    With your profile consent and device permission, listens for a sharp motion impact and offers a 15-second chance to cancel. This heuristic can miss falls or mistake other impacts for a fall; it is not medical or guaranteed fall detection.
+                    With your saved location and motion consent, monitoring starts after one explicit enable action. Small jolts are ignored: a possible fall needs a near-free-fall motion followed by a strong impact (over 35 m/s²) within 1.2 seconds, then gives you 15 seconds to cancel. This is a conservative heuristic, not medical or guaranteed fall detection.
                 </p>
 
                 <div class="p-3 bg-light rounded-4 my-auto border text-center">
@@ -114,26 +114,29 @@
                     </div>
                     <div class="fw-bold text-dark">Device motion sensor</div>
                     <div id="motionSensorStatus" class="text-muted small mb-3" role="status" aria-live="polite" data-sensor-consent="{{ 'true' if sensor_consent else 'false' }}">
-                        {% if sensor_consent %}Motion sensing is off until you enable it here.{% else %}Motion sensing is off. Enable sensor consent in your profile to continue.{% endif %}
+                        {% if sensor_consent and location_consent %}Motion sensing is off until you enable it here.{% elif not sensor_consent %}Motion sensing is off. Enable sensor consent in your profile to continue.{% else %}Enable location tracking consent in your profile to start safety monitoring.{% endif %}
                     </div>
-                    {% if sensor_consent %}
+                    {% if sensor_consent and location_consent %}
                     <button id="enableMotionDetection" data-sensor-consent="true" class="btn btn-outline-success rounded-pill px-4 fw-bold shadow-sm mb-3">
-                        <i class="bi bi-phone me-1"></i>Enable motion sensing
+                        <i class="bi bi-shield-check me-1"></i>Enable safety monitoring
+                    </button>
+                    <button id="stopSafetyMonitoring" type="button" class="btn btn-outline-danger rounded-pill px-4 fw-bold shadow-sm mb-3" onclick="window.travelSafety.stopSafetyMonitoring()" hidden>
+                        <i class="bi bi-pause-circle me-1"></i>Stop monitoring on this device
                     </button>
                     {% else %}
                     <a href="{{ url_for('auth.profile') }}" class="btn btn-outline-secondary rounded-pill px-4 fw-bold shadow-sm mb-3">
-                        <i class="bi bi-gear me-1"></i>Review sensor consent in profile
+                        <i class="bi bi-gear me-1"></i>Review location and motion consent
                     </a>
                     {% endif %}
 
                     <!-- Simulate Fall Button for Demo & Evaluation -->
-                    <button class="btn btn-outline-danger rounded-pill px-4 fw-bold shadow-sm" onclick="window.travelSafety.promptFallAlert()">
-                        <i class="bi bi-play-circle me-1"></i>Simulate Sudden Fall Incident
+                    <button class="btn btn-outline-danger rounded-pill px-4 fw-bold shadow-sm" onclick="window.travelSafety.simulateFallAlert()">
+                        <i class="bi bi-play-circle me-1"></i>Test fall alert
                     </button>
                 </div>
 
                 <div class="small text-muted border-top pt-3 mt-3">
-                    <i class="bi bi-exclamation-circle me-1"></i>Sensor access requires HTTPS (or localhost), profile consent, a supported browser, and your action above. Browsers may stop sensing in the background. Manual SOS is always available.
+                    <i class="bi bi-exclamation-circle me-1"></i>Enable from this page to request browser permissions. Monitoring may pause when the browser is backgrounded or the phone is locked; a queued SOS countdown continues on the server after it has started. Sound and vibration depend on device/browser support and settings.
                 </div>
             </div>
         </div>

@@ -61,7 +61,7 @@ def test_safety_center_requires_profile_consent_before_motion_sensing(client, ap
     assert response.status_code == 200
     assert b'Motion sensing is off. Enable sensor consent in your profile' in response.data
     assert b'id="enableMotionDetection"' not in response.data
-    assert b'Review sensor consent in profile' in response.data
+    assert b'Review location and motion consent' in response.data
 
 
 def test_safety_center_offers_motion_enable_after_profile_consent(client, app):
@@ -76,6 +76,21 @@ def test_safety_center_offers_motion_enable_after_profile_consent(client, app):
     assert response.status_code == 200
     assert b'id="enableMotionDetection" data-sensor-consent="true"' in response.data
     assert b'Motion sensing is off until you enable it here.' in response.data
+
+
+def test_safety_monitoring_requires_saved_location_consent(client, app):
+    with app.app_context():
+        user = User.query.filter_by(username='safety_tester').first()
+        user.profile.sensor_consent = True
+        user.profile.location_tracking_enabled = False
+        db.session.commit()
+
+    client.post('/login', data={'identifier': 'safety_tester', 'password': 'pass123'})
+    response = client.get('/safety')
+
+    assert response.status_code == 200
+    assert b'id="enableMotionDetection"' not in response.data
+    assert b'Enable location tracking consent in your profile' in response.data
 
 
 def dispatch_queued_action(client, app, action_id):

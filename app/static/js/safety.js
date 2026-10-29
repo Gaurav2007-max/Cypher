@@ -13,7 +13,10 @@ class SafetyManager {
         this.motionListening = false;
         this.motionDataReceived = false;
         this.handleMotionEvent = (event) => this.handleMotion(event);
-        this.lastAccelMagnitude = 9.8;
+        this.lastFreefallAt = null;
+        this.lastFallDetectedAt = null;
+        this.alertAudioContext = null;
+        this.alertSignalInterval = null;
         this.sosCountdownInterval = null;
         this.sosCountdownDeadline = null;
         this.pendingSosPayload = null;
@@ -27,43 +30,168 @@ class SafetyManager {
     init() {
         window.addEventListener('storage', event => {
             if (event.key === 'traveltech-location-consent' && event.newValue === 'false') {
-                this.stopContinuousTracking();
-                this.currentCoords = null;
+                this.stopSafetyMonitoring(false);
+            } else if (event.key === 'traveltech-sensor-consent' && event.newValue === 'false') {
+                this.stopSafetyMonitoring(false);
+            } else if (event.key === 'traveltech-safety-monitoring' && event.newValue === 'false') {
+                this.stopSafetyMonitoring(false);
             }
         });
         if (document.getElementById('checkinCountdownDisplay')) {
             this.checkActiveCheckin();
         }
         this.initMotionSensor();
+        if (this.isSafetyMonitoringEnabled()) {
+            this.resumeSafetyMonitoring();
+        }
+    }
+
+    isSafetyMonitoringEnabled() {
+        try {
+            return localStorage.getItem('traveltech-safety-monitoring') === 'true';
+        } catch (error) {
+            console.error('Could not read the safety monitoring preference:', error);
+            return false;
+        }
+    }
+
+    hasMotionConsent() {
+        return document.body.dataset.sensorConsent === 'true';
+    }
+
+    hasLocationConsent() {
+        return document.body.dataset.locationConsent === 'true';
+    }
+
+    resumeSafetyMonitoring() {
+        if (!this.hasMotionConsent() || !this.hasLocationConsent()) {
+            this.stopSafetyMonitoring(false);
+            return;
+        }
+
+        if (!('DeviceMotionEvent' in window)) {
+            const status = document.getElementById('motionSensorStatus');
+            if (status) status.textContent = 'Motion sensors are not supported by this browser or device.';
+            this.updateMonitoringControls(false);
+            return;
+        }
+
+        if (typeof window.DeviceMotionEvent?.requestPermission === 'function') {
+            const status = document.getElementById('motionSensorStatus');
+            const button = document.getElementById('enableMotionDetection');
+            if (status) status.textContent = 'Your monitoring preference is saved. Tap to resume motion sensing in this browser session.';
+            if (button) {
+                button.hidden = false;
+                button.disabled = false;
+            }
+            return;
+        }
+
+        this.attachMotionSensor();
+        this.requestLocationPermission().then(coords => {
+            if (!coords) {
+                this.stopMotionSensor();
+                this.updateMonitoringControls(false);
+                const status = document.getElementById('motionSensorStatus');
+                if (status) status.textContent = 'Location access is unavailable. Tap enable to resume safety monitoring.';
+                return;
+            }
+            this.updateMonitoringControls(true);
+        });
+    }
+
+    async enableSafetyMonitoring(button, status) {
+        if (!this.hasMotionConsent() || !this.hasLocationConsent()) {
+            status.textContent = 'Enable location and motion consent in your profile before starting safety monitoring.';
+            return;
+        }
+        button.disabled = true;
+        status.textContent = 'Requesting motion and location access...';
+        this.primeAlertOutput();
+
+        if (!await this.enableMotionSensor()) {
+            button.disabled = false;
+            return;
+        }
+
+        const coords = await this.requestLocationPermission();
+        if (!coords) {
+            this.stopMotionSensor();
+            status.textContent = 'Location permission is needed for safety monitoring. Allow it in your browser and try again.';
+            button.disabled = false;
+            return;
+        }
+
+        try {
+            localStorage.setItem('traveltech-safety-monitoring', 'true');
+        } catch (error) {
+            this.stopMotionSensor();
+            this.stopContinuousTracking();
+            status.textContent = 'Could not save this monitoring preference in browser storage.';
+            console.error('Could not save the safety monitoring preference:', error);
+            button.disabled = false;
+            return;
+        }
+
+        status.textContent = 'Safety monitoring is active while this browser allows sensors and location access.';
+        this.updateMonitoringControls(true);
+    }
+
+    stopSafetyMonitoring(clearPreference = true) {
+        if (clearPreference) {
+            try {
+                localStorage.setItem('traveltech-safety-monitoring', 'false');
+            } catch (error) {
+                console.error('Could not save the safety monitoring preference:', error);
+            }
+        }
+        this.stopMotionSensor();
+        this.stopContinuousTracking();
+        this.currentCoords = null;
+        this.updateMonitoringControls(false);
+        const status = document.getElementById('motionSensorStatus');
+        if (status) status.textContent = 'Safety monitoring is off. Enable it here to resume.';
+    }
+
+    updateMonitoringControls(active) {
+        const enableButton = document.getElementById('enableMotionDetection');
+        const stopButton = document.getElementById('stopSafetyMonitoring');
+        if (enableButton) enableButton.hidden = active;
+        if (stopButton) stopButton.hidden = !active;
     }
 
     // Explains location permission to tourist before prompting
     requestLocationPermission(callback) {
         if (!navigator.geolocation) {
             alert('Geolocation is not supported by your browser.');
-            return;
+            if (callback) callback(null);
+            return Promise.resolve(null);
         }
 
-        navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                this.currentCoords = {
-                    latitude: pos.coords.latitude,
-                    longitude: pos.coords.longitude,
-                    accuracy: pos.coords.accuracy
-                };
-                this.isTracking = true;
-                if (document.body.dataset.locationConsent === 'true') {
-                    this.sendLocationSample(this.currentCoords);
-                    this.startContinuousTracking();
-                }
-                if (callback) callback(this.currentCoords);
-            },
-            (err) => {
-                console.warn("Location permission denied or unavailable:", err.message);
-                if (callback) callback(null);
-            },
-            { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
-        );
+        return new Promise(resolve => {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    this.currentCoords = {
+                        latitude: pos.coords.latitude,
+                        longitude: pos.coords.longitude,
+                        accuracy: pos.coords.accuracy
+                    };
+                    this.isTracking = true;
+                    if (this.hasLocationConsent()) {
+                        this.sendLocationSample(this.currentCoords);
+                        this.startContinuousTracking();
+                    }
+                    if (callback) callback(this.currentCoords);
+                    resolve(this.currentCoords);
+                },
+                (err) => {
+                    console.warn('Location permission denied or unavailable:', err.message);
+                    if (callback) callback(null);
+                    resolve(null);
+                },
+                { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
+            );
+        });
     }
 
     startContinuousTracking() {
@@ -119,6 +247,7 @@ class SafetyManager {
     // Manual SOS
     triggerManualSOS() {
         if (this.pendingSosPayload || this.sosSubmitting) return;
+        this.primeAlertOutput();
         const payload = {
             latitude: this.currentCoords ? this.currentCoords.latitude : null,
             longitude: this.currentCoords ? this.currentCoords.longitude : null,
@@ -143,6 +272,11 @@ class SafetyManager {
         }
     }
 
+    simulateFallAlert() {
+        this.primeAlertOutput();
+        this.promptFallAlert();
+    }
+
     executeSosPost(payload) {
         if (this.pendingSosPayload || this.sosSubmitting) return;
         this.beginSosCountdown(payload);
@@ -153,6 +287,7 @@ class SafetyManager {
         if (!overlay) {
             console.error('SOS countdown UI is missing; refusing to send without the 30-second cancellation window.');
             alert('SOS could not be started because the safety countdown is unavailable. Please reload the page and try again.');
+            this.stopAlertSignal();
             return;
         }
 
@@ -172,9 +307,11 @@ class SafetyManager {
         } catch (error) {
             this.pendingSosPayload = null;
             this.sosTriggerElement = null;
+            this.stopAlertSignal();
             alert(error.message);
             return;
         }
+        this.startAlertSignal();
         overlay.hidden = false;
         document.body.classList.add('sos-countdown-active');
         this.updateSosCountdown();
@@ -230,6 +367,7 @@ class SafetyManager {
     }
 
     clearSosCountdown() {
+        this.stopAlertSignal();
         if (this.sosCountdownInterval !== null) {
             window.clearInterval(this.sosCountdownInterval);
             this.sosCountdownInterval = null;
@@ -302,6 +440,73 @@ class SafetyManager {
         window.location.reload();
     }
 
+    primeAlertOutput() {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+        try {
+            if (!this.alertAudioContext) this.alertAudioContext = new AudioContextClass();
+            if (this.alertAudioContext.state === 'suspended') {
+                this.alertAudioContext.resume().catch(error => {
+                    console.warn('Could not enable emergency alert audio:', error);
+                });
+            }
+        } catch (error) {
+            console.warn('Emergency alert audio is unavailable:', error);
+        }
+    }
+
+    playAlertTone() {
+        if (!this.alertAudioContext || this.alertAudioContext.state !== 'running') return;
+        try {
+            const oscillator = this.alertAudioContext.createOscillator();
+            const gain = this.alertAudioContext.createGain();
+            const now = this.alertAudioContext.currentTime;
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.setValueAtTime(880, now);
+            oscillator.frequency.setValueAtTime(660, now + 0.18);
+            gain.gain.setValueAtTime(0.0001, now);
+            gain.gain.exponentialRampToValueAtTime(0.18, now + 0.04);
+            gain.gain.setValueAtTime(0.18, now + 0.28);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.42);
+            oscillator.connect(gain);
+            gain.connect(this.alertAudioContext.destination);
+            oscillator.start(now);
+            oscillator.stop(now + 0.43);
+        } catch (error) {
+            console.warn('Could not play the emergency alert tone:', error);
+        }
+    }
+
+    startAlertSignal() {
+        if (this.alertSignalInterval !== null) return;
+        const signal = () => {
+            if (navigator.vibrate) {
+                try {
+                    navigator.vibrate([500, 180, 500, 180, 800]);
+                } catch (error) {
+                    console.warn('Device vibration is unavailable:', error);
+                }
+            }
+            this.playAlertTone();
+        };
+        signal();
+        this.alertSignalInterval = window.setInterval(signal, 2500);
+    }
+
+    stopAlertSignal() {
+        if (this.alertSignalInterval !== null) {
+            window.clearInterval(this.alertSignalInterval);
+            this.alertSignalInterval = null;
+        }
+        if (navigator.vibrate) {
+            try {
+                navigator.vibrate(0);
+            } catch (error) {
+                console.warn('Could not stop device vibration:', error);
+            }
+        }
+    }
+
     // Motion Sensor & Fall Detection Heuristic
     initMotionSensor() {
         const enableButton = document.getElementById('enableMotionDetection');
@@ -326,35 +531,53 @@ class SafetyManager {
             return;
         }
 
+        if (!this.hasLocationConsent()) {
+            status.textContent = 'Enable location tracking consent in your profile to start combined safety monitoring.';
+            enableButton.hidden = true;
+            return;
+        }
+
         status.textContent = 'Motion sensing is off until you enable it here.';
-        enableButton.addEventListener('click', () => this.enableMotionSensor(enableButton, status));
+        enableButton.addEventListener('click', () => this.enableSafetyMonitoring(enableButton, status));
     }
 
-    async enableMotionSensor(button, status) {
-        if (this.motionListening) return;
-        button.disabled = true;
-        status.textContent = 'Requesting motion sensor access...';
+    async enableMotionSensor() {
+        if (this.motionListening) return true;
 
         try {
             const motionEvent = window.DeviceMotionEvent;
             if (typeof motionEvent.requestPermission === 'function') {
                 const permission = await motionEvent.requestPermission();
                 if (permission !== 'granted') {
-                    status.textContent = 'Motion sensor permission was not granted. Allow it in your browser settings to use fall alerts.';
-                    button.disabled = false;
-                    return;
+                    const status = document.getElementById('motionSensorStatus');
+                    if (status) status.textContent = 'Motion sensor permission was not granted. Allow it in your browser settings to use fall alerts.';
+                    return false;
                 }
             }
 
-            window.addEventListener('devicemotion', this.handleMotionEvent);
-            this.motionListening = true;
-            button.hidden = true;
-            status.textContent = 'Permission granted. Waiting for motion data from the device...';
+            this.attachMotionSensor();
+            return true;
         } catch (error) {
             console.error('Could not enable the motion sensor:', error);
-            status.textContent = 'Could not enable motion sensing. Check browser permissions and try again.';
-            button.disabled = false;
+            const status = document.getElementById('motionSensorStatus');
+            if (status) status.textContent = 'Could not enable motion sensing. Check browser permissions and try again.';
+            return false;
         }
+    }
+
+    attachMotionSensor() {
+        if (this.motionListening) return;
+        window.addEventListener('devicemotion', this.handleMotionEvent);
+        this.motionListening = true;
+        const status = document.getElementById('motionSensorStatus');
+        if (status) status.textContent = 'Motion permission is active. Fall alerts require a free-fall followed by a strong impact.';
+    }
+
+    stopMotionSensor() {
+        if (!this.motionListening) return;
+        window.removeEventListener('devicemotion', this.handleMotionEvent);
+        this.motionListening = false;
+        this.lastFreefallAt = null;
     }
 
     handleMotion(event) {
@@ -363,20 +586,27 @@ class SafetyManager {
         if (!this.motionDataReceived) {
             this.motionDataReceived = true;
             const status = document.getElementById('motionSensorStatus');
-            if (status) status.textContent = 'Motion sensor is receiving data. Fall detection is using an impact heuristic.';
+            if (status) status.textContent = 'Motion sensor is receiving data. Small movements are ignored; alerts require a free-fall and strong impact pattern.';
         }
 
         const x = accel.x || 0;
         const y = accel.y || 0;
         const z = accel.z || 0;
         const magnitude = Math.sqrt(x*x + y*y + z*z);
+        const now = Date.now();
 
-        // Heuristic: sudden peak impact (> 28 m/s^2, roughly ~2.8g)
-        if (magnitude > 28.0 && this.lastAccelMagnitude < 18.0) {
-            console.warn("Possible fall shock detected! Mag:", magnitude);
+        if (magnitude < 4.5) {
+            this.lastFreefallAt = now;
+        } else if (magnitude > 35 && this.lastFreefallAt !== null && now - this.lastFreefallAt <= 1200) {
+            this.lastFreefallAt = null;
+            if (this.lastFallDetectedAt !== null && now - this.lastFallDetectedAt < 30000) return;
+            this.lastFallDetectedAt = now;
+            console.warn('Possible high-impact fall pattern detected. Magnitude:', magnitude);
             this.promptFallAlert();
         }
-        this.lastAccelMagnitude = magnitude;
+        if (this.lastFreefallAt !== null && now - this.lastFreefallAt > 1200) {
+            this.lastFreefallAt = null;
+        }
     }
 
     // Fall alert prompt with visible countdown
@@ -385,12 +615,13 @@ class SafetyManager {
 
         const modalEl = document.getElementById('fallAlertModal');
         if (!modalEl) {
-            // If modal not in DOM, simulate fallback
+            console.error('Fall alert UI is missing; cannot safely show the cancellation prompt.');
             return;
         }
 
         const modal = new bootstrap.Modal(modalEl);
         modal.show();
+        this.startAlertSignal();
 
         this.fallSecondsRemaining = 15;
         const countSpan = document.getElementById('fallCountdownNumber');
@@ -425,6 +656,7 @@ class SafetyManager {
             const modal = bootstrap.Modal.getInstance(modalEl);
             if (modal) modal.hide();
         }
+        this.stopAlertSignal();
     }
 
     // Safety Check-In Timer

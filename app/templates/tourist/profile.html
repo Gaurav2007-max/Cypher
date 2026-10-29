@@ -18,6 +18,7 @@
                 </div>
 
                 <form id="profileSettingsForm" method="POST" action="{{ url_for('auth.profile') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <h5 class="fw-bold text-dark mb-3"><i class="bi bi-person-badge text-primary me-2"></i>Personal Details</h5>
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
@@ -114,13 +115,13 @@
                                 <div class="form-check form-switch mt-2">
                                     <input class="form-check-input" type="checkbox" name="location_tracking_enabled" id="locationTrackingSwitch" {% if profile.location_tracking_enabled %}checked{% endif %}>
                                     <label class="form-check-label small fw-semibold text-dark" for="locationTrackingSwitch">
-                                        Allow foreground location samples for nearby stories and the emergency location trail (requires a separate GPS action)
+                                        Allow foreground location samples for nearby stories and the emergency location trail while safety monitoring is enabled
                                     </label>
                                 </div>
                                 <div class="form-check form-switch mt-2">
                                     <input class="form-check-input" type="checkbox" name="sensor_consent" id="sensorConsentSwitch" {% if profile.sensor_consent %}checked{% endif %}>
                                     <label class="form-check-label small fw-semibold text-dark" for="sensorConsentSwitch">
-                                        Allow optional device motion sensing for impact alerts (must also be enabled from the Safety Center)
+                                        Allow optional device motion sensing for fall alerts (must also be enabled from the Safety Center)
                                     </label>
                                 </div>
                             </div>
@@ -141,6 +142,7 @@
                     {% else %}
                     <span class="badge bg-warning-subtle text-warning">Emergency email not verified</span>
                     <form id="verifyContactForm" method="POST" action="{{ url_for('auth.send_contact_verification') }}" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill ms-2">Send verification email</button>
                     </form>
                     {% endif %}
@@ -153,12 +155,15 @@
 <script>
 document.getElementById('profileSettingsForm')?.addEventListener('submit', () => {
     try {
-        localStorage.setItem(
-            'traveltech-location-consent',
-            document.getElementById('locationTrackingSwitch').checked ? 'true' : 'false'
-        );
+        const locationConsent = document.getElementById('locationTrackingSwitch').checked;
+        const sensorConsent = document.getElementById('sensorConsentSwitch').checked;
+        localStorage.setItem('traveltech-location-consent', String(locationConsent));
+        localStorage.setItem('traveltech-sensor-consent', String(sensorConsent));
+        if (!locationConsent || !sensorConsent) {
+            localStorage.setItem('traveltech-safety-monitoring', 'false');
+        }
     } catch (error) {
-        console.error('Could not broadcast the location-consent change to other tabs:', error);
+        console.error('Could not broadcast the safety-consent changes to other tabs:', error);
     }
 });
 </script>

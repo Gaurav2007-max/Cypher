@@ -109,7 +109,7 @@ def test_feedback_submission_and_resolution(client):
         assert report.feedback_type == 'outdated_price'
 
     # 2. Logout tourist, login as admin to resolve feedback
-    client.get('/logout')
+    client.post('/logout')
     client.post('/login', data={'identifier': 'admin_user', 'password': 'pass123'})
     res_resolve = client.post(f'/admin/resolve-feedback/{report_id}', data={
         'status': 'resolved',
