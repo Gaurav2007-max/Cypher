@@ -7,6 +7,7 @@ GET /api/ml/model-info                                  → model metadata
 """
 
 from flask import Blueprint, jsonify, request, g
+from app.extensions import db
 from app.models.destination import Destination
 from app.services.ml_service import (
     predict_daily_profile, predict_weekly_profile,
@@ -27,6 +28,14 @@ _DEST_META_LOOKUP = {
     "asola":             (1, 0.55),
     "iskcon":            (2, 0.80),
     "radha govind":      (2, 0.80),
+    "dhyankaksh":        (2, 0.60),
+    "town park":         (1, 0.70),
+    "jakhoo":            (2, 0.85),
+    "himachal state museum": (0, 0.65),
+    "museum":            (0, 0.65),
+    "gaiety":            (0, 0.70),
+    "nahargarh":         (0, 0.85),
+    "kashi vishwanath":  (2, 0.98),
     "taj mahal":         (3, 0.99),
     "mehtab bagh":       (0, 0.60),
     "ridge":             (0, 0.75),
@@ -79,7 +88,7 @@ def _resolve_dest_meta(dest: Destination) -> tuple[int, float]:
 
 
 def _dest_or_404(dest_id: int):
-    dest = Destination.query.get(dest_id)
+    dest = db.session.get(Destination, dest_id)
     if not dest:
         return None, jsonify({"error": "Destination not found", "dest_id": dest_id}), 404
     return dest, None, None
@@ -100,7 +109,7 @@ def crowd_forecast(dest_id: int):
     24-hour hourly crowd prediction for a destination on a given date.
     Query param: ?date=YYYY-MM-DD  (defaults to today)
     """
-    dest = Destination.query.get(dest_id)
+    dest = db.session.get(Destination, dest_id)
     if not dest:
         return jsonify({"error": "Destination not found", "dest_id": dest_id}), 404
 
@@ -149,7 +158,7 @@ def crowd_weekly(dest_id: int):
     7-day × 24-hour crowd prediction matrix.
     Query param: ?start=YYYY-MM-DD  (defaults to today)
     """
-    dest = Destination.query.get(dest_id)
+    dest = db.session.get(Destination, dest_id)
     if not dest:
         return jsonify({"error": "Destination not found", "dest_id": dest_id}), 404
 

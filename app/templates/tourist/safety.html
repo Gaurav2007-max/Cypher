@@ -39,6 +39,35 @@
         </div>
     </div>
 
+    <section class="card border-0 shadow-sm rounded-4 p-4 mb-4" aria-labelledby="offlineKitHeading">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            <div>
+                <h4 id="offlineKitHeading" class="fw-bold mb-1 text-dark">
+                    <i class="bi bi-download text-success me-2"></i>Offline Emergency Kit
+                </h4>
+                <p class="text-muted small mb-0">
+                    {% if current_city %}
+                    Download a standalone map and emergency reference for {{ current_city.name }}. It includes OpenStreetMap roads and nearby listed facilities; verified safe/avoid zones are currently unavailable.
+                    {% else %}
+                    Select a city from Explore to create an offline emergency reference.
+                    {% endif %}
+                </p>
+            </div>
+            {% if current_city %}
+            <button id="downloadEmergencyKit"
+                    class="btn btn-success rounded-pill px-4 fw-bold flex-shrink-0"
+                    data-city-id="{{ current_city.id }}"
+                    data-city-name="{{ current_city.name }}">
+                <i class="bi bi-file-earmark-arrow-down me-2"></i>Download {{ current_city.name }} Kit
+            </button>
+            {% endif %}
+        </div>
+        <div id="emergencyKitStatus" class="small mt-3" role="status" aria-live="polite"></div>
+        <div class="small text-muted mt-2">
+            <i class="bi bi-info-circle me-1"></i>Facility data is retrieved when you download and may be incomplete or outdated. India's 112 is a national emergency number, not a city-specific hotline. No area is labeled safe or dangerous without verified authority data.
+        </div>
+    </section>
+
     <div class="row g-4">
         <!-- Check-in Timer Widget -->
         <div class="col-lg-6">
@@ -105,7 +134,7 @@
                     <span class="badge bg-secondary-subtle text-secondary">Opt-in Motion Heuristic</span>
                 </div>
                 <p class="text-muted small">
-                    With location and motion consent enabled in Settings, monitoring starts automatically whenever this site can access the sensors. On browsers that require a one-time motion permission gesture, grant it when saving Settings or use Resume below. Small jolts are ignored: a possible fall needs a near-free-fall motion followed by an impact over 28 m/s² within 1.2 seconds, then gives you 15 seconds to cancel. This is a conservative heuristic, not medical or guaranteed fall detection.
+                    With location and motion consent enabled in Settings, monitoring starts automatically whenever this site can access the sensors. On browsers that require a one-time motion permission gesture, grant it when saving Settings or use Resume below. Small jolts are ignored: a possible fall needs a near-free-fall motion followed by an impact over 28 m/s² within 1.2 seconds, then gives you 15 seconds to cancel. Detection re-arms after a five-second duplicate-alert cooldown; temporary GPS failures do not stop motion sensing, but alerts may lack coordinates. This is a conservative heuristic, not medical or guaranteed fall detection.
                 </p>
 
                 <div class="p-3 bg-light rounded-4 my-auto border text-center">
@@ -225,6 +254,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/emergency_kit.js') }}"></script>
 <script>
 let safetyMap = null;
 let trailPolyline = null;

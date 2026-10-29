@@ -588,6 +588,11 @@ def seed(app=None):
         )
         db.session.add_all([t_metro, t_bus, t_auto])
 
+        
+        # Populate extended user-specified destinations, activities, and cuisine
+        from seed_user_content import populate_user_content
+        populate_user_content(app=app)
+
         Destination.query.update({
             Destination.source_attribution: 'Unverified sample data',
             Destination.last_verified_at: None,

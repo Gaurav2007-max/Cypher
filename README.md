@@ -35,7 +35,8 @@ A full-stack, responsive web application engineered in Python with Flask that en
 ### 5. Tourist Safety & Emergency Response
 - **Emergency Contacts:** Supports personal emergency contacts as well as International Travel Assistance Agencies / Consulate Desks for foreign tourists.
 - **Manual SOS:** Stores a server-side pending action with a 30-second cancellation window, so dispatch is not controlled by a browser timer. The worker records an incident and attempts SMTP delivery after the deadline; incident recording and email delivery are reported separately. Live SMTP requires an explicitly verified emergency-contact email.
-- **Potential Fall & Impact Detection:** Enabling saved location and motion consent in Settings automatically starts monitoring across TravelTech pages after browser permissions are granted; the Safety Center retains controls to resume or stop it on the device. The conservative heuristic ignores small jolts and only prompts after a near-free-fall signal followed by a strong impact; it is not medical or guaranteed fall detection. Browsers and operating systems may pause sensor/location events when the tab is hidden, the browser is closed, or the phone is locked, so background monitoring is best-effort and cannot run with the phone powered off. Once an SOS is queued, its countdown and dispatch continue server-side.
+- **Potential Fall & Impact Detection:** Enabling saved location and motion consent in Settings automatically starts monitoring across TravelTech pages after browser permissions are granted; a temporary GPS failure no longer removes the motion listener, though an SOS may then lack coordinates. The conservative heuristic ignores small jolts and only prompts after a near-free-fall signal followed by a strong impact; it re-arms after a five-second duplicate-alert cooldown and is not medical or guaranteed fall detection. Browsers and operating systems may pause sensor/location events when the tab is hidden, the browser is closed, or the phone is locked, so background monitoring is best-effort and cannot run with the phone powered off. Once an SOS is queued, its countdown and dispatch continue server-side.
+- **Offline Emergency Kit:** From the Safety Center, download a standalone HTML kit for the selected city while online. It embeds an OpenStreetMap road sketch and nearby mapped police, health, fuel, and fire facilities so it opens without map tiles or network access. Facility data is community-maintained and dated at download; India's 112 is identified as a national number, not a city hotline. The current seed data contains no authority-verified safe/avoid zones, so the kit explicitly reports that those zones are unavailable instead of inventing safety claims.
 - **10-Minute Rolling Location History Trail:** Requires saved location consent and the explicit Safety Center monitoring action. Samples older than 10 minutes are automatically purged; opting out deletes stored samples. Coordinates are snapshotted into incident records when a queued alert is processed.
 - **Safety Check-in Timer:** Supports minute-based timers. On expiry, the app provides a 15-second response period and then a 30-second server-side cancellation period before queuing the alert. Users can confirm safety during either period.
 - **Privacy First:** Explicit opt-in switches, coordinates never exposed to other tourists, zero credential leaks.
@@ -85,6 +86,7 @@ copy .env.example .env
 ```
 Relative SQLite paths in `DATABASE_URI` are resolved from the project root, so `sqlite:///traveltech.db` uses the included database file.
 Interactive and safety maps use OpenStreetMap tiles and do not require a map API key or `.env` setting.
+The offline emergency kit retrieves a bounded OpenStreetMap extract at download time; the downloaded HTML embeds the data and includes OpenStreetMap/ODbL attribution, so the file itself works offline.
 > **Note on Email / SMTP:** `SMTP_TEST_MODE=True` records SOS incidents but does not send email. For live delivery, set `SMTP_TEST_MODE=False` and configure `SMTP_SERVER`, `SMTP_PORT`, `SMTP_USE_TLS`, `SMTP_USERNAME`, and `SMTP_PASSWORD` in your local `.env`, then restart Flask so it reloads settings. Use a valid sender address (or leave `SMTP_DEFAULT_SENDER` unset to send from `SMTP_USERNAME`). Never commit or share SMTP credentials. A live SOS delivery should be verified with a consenting test recipient before relying on it in an emergency.
 
 ### 3. Initialize & Seed Database
@@ -157,6 +159,7 @@ The automated tests verify:
 - ✅ Dynamic recommendation engine calculates distance/time and rejects overcrowded alternatives
 - ✅ Server-side 30-second SOS dispatch, cancellation, and safe test mode logging
 - ✅ Verified-contact gate for live SMTP and explicit verification confirmation
+- ✅ Offline emergency-kit data sourcing, attribution, error handling, and safe-zone disclosure
 - ✅ Check-in expiry escalation, confirmation cancellation, and status checks
 - ✅ Rolling 10-minute location sample posting and automatic purging of stale records
 - ✅ Saved location consent and private feedback/notification listing

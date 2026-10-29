@@ -24,7 +24,7 @@ def client():
             from app.extensions import db
             from seed_data import seed
             db.create_all()
-            seed()
+            seed(app=app)
         yield c
 
 

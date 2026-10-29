@@ -1,6 +1,7 @@
 // TravelTech Tourist Safety & Emergency Controller
 
 const FALL_IMPACT_THRESHOLD = 28;
+const FALL_ALERT_COOLDOWN_MS = 5000;
 
 class SafetyManager {
     constructor() {
@@ -45,6 +46,11 @@ class SafetyManager {
             if (!document.hidden && this.isSafetyMonitoringEnabled() &&
                 this.hasMotionConsent() && this.hasLocationConsent() &&
                 !this.motionListening) {
+                this.resumeSafetyMonitoring();
+            }
+        });
+        window.addEventListener('pageshow', () => {
+            if (this.isSafetyMonitoringEnabled() && !this.motionListening) {
                 this.resumeSafetyMonitoring();
             }
         });
@@ -101,12 +107,12 @@ class SafetyManager {
         }
 
         this.attachMotionSensor();
+        this.updateMonitoringControls(true);
         this.requestLocationPermission().then(coords => {
             if (!coords) {
-                this.stopMotionSensor();
-                this.updateMonitoringControls(false);
                 const status = document.getElementById('motionSensorStatus');
-                if (status) status.textContent = 'Location access is unavailable. Tap enable to resume safety monitoring.';
+                if (status) status.textContent = 'Motion monitoring remains active, but the current location is unavailable. Check location permission for emergency coordinates.';
+                this.updateMonitoringControls(true, true);
                 return;
             }
             this.updateMonitoringControls(true);
@@ -129,9 +135,18 @@ class SafetyManager {
 
         const coords = await this.requestLocationPermission();
         if (!coords) {
-            this.stopMotionSensor();
-            status.textContent = 'Location permission is needed for safety monitoring. Allow it in your browser and try again.';
-            button.disabled = false;
+            try {
+                localStorage.setItem('traveltech-safety-monitoring', 'true');
+            } catch (error) {
+                console.error('Could not save the safety monitoring preference:', error);
+                this.stopMotionSensor();
+                status.textContent = 'Could not save the monitoring preference. Safety monitoring is not enabled.';
+                this.updateMonitoringControls(false);
+                button.disabled = false;
+                return;
+            }
+            status.textContent = 'Motion monitoring is active. Location is unavailable, so SOS alerts may not include current coordinates.';
+            this.updateMonitoringControls(true, true);
             return;
         }
 
@@ -175,11 +190,21 @@ class SafetyManager {
         if (status) status.textContent = 'Safety monitoring is off. Enable it here to resume.';
     }
 
-    updateMonitoringControls(active) {
+    updateMonitoringControls(active, locationUnavailable = false) {
         const enableButton = document.getElementById('enableMotionDetection');
         const stopButton = document.getElementById('stopSafetyMonitoring');
+        const indicator = document.getElementById('safetyMonitoringIndicator');
         if (enableButton) enableButton.hidden = active;
+        if (enableButton && !active && 'DeviceMotionEvent' in window && window.isSecureContext) {
+            enableButton.disabled = false;
+        }
         if (stopButton) stopButton.hidden = !active;
+        if (indicator) {
+            indicator.hidden = !active;
+            indicator.textContent = active
+                ? (locationUnavailable ? 'Motion active · location unavailable' : 'Safety monitoring active')
+                : '';
+        }
     }
 
     // Explains location permission to tourist before prompting
@@ -627,7 +652,7 @@ class SafetyManager {
             this.lastFreefallAt = now;
         } else if (magnitude > FALL_IMPACT_THRESHOLD && this.lastFreefallAt !== null && now - this.lastFreefallAt <= 1200) {
             this.lastFreefallAt = null;
-            if (this.lastFallDetectedAt !== null && now - this.lastFallDetectedAt < 30000) return;
+            if (this.lastFallDetectedAt !== null && now - this.lastFallDetectedAt < FALL_ALERT_COOLDOWN_MS) return;
             this.lastFallDetectedAt = now;
             console.warn('Possible high-impact fall pattern detected. Magnitude:', magnitude);
             this.promptFallAlert();

@@ -29,13 +29,8 @@ def _demo_crowd_for_destination(city, destination):
     return None
 
 
-@tourist_bp.route('/dashboard')
-@login_required
-def dashboard():
-    user = get_current_user()
+def _selected_city_for(user):
     cities = City.query.filter_by(is_active=True).all()
-    
-    # Selected city: from query param, session, user profile, or default to Faridabad
     selected_city_id = request.args.get('city_id', type=int)
     if not selected_city_id:
         selected_city_id = session.get('selected_city_id')
@@ -43,11 +38,20 @@ def dashboard():
         selected_city_id = user.profile.preferred_city_id
     if not selected_city_id:
         faridabad = City.query.filter(City.name.ilike('%Faridabad%')).first()
-        selected_city_id = faridabad.id if faridabad else (cities[0].id if cities else 1)
+        selected_city_id = faridabad.id if faridabad else (cities[0].id if cities else None)
 
-    current_city = City.query.get(selected_city_id) or (cities[0] if cities else None)
+    current_city = City.query.get(selected_city_id) if selected_city_id else None
+    current_city = current_city or (cities[0] if cities else None)
     if current_city:
         session['selected_city_id'] = current_city.id
+    return cities, current_city
+
+
+@tourist_bp.route('/dashboard')
+@login_required
+def dashboard():
+    user = get_current_user()
+    cities, current_city = _selected_city_for(user)
 
     destinations = []
     destinations_dict_list = []
@@ -118,11 +122,13 @@ def saved():
 @login_required
 def safety_center():
     user = get_current_user()
+    _, current_city = _selected_city_for(user)
     primary_contact = user.emergency_contacts[0] if user.emergency_contacts else None
     active_checkin = CheckInSession.query.filter_by(user_id=user.id, status='active').order_by(CheckInSession.id.desc()).first()
     return render_template(
         'tourist/safety.html',
         user=user,
+        current_city=current_city,
         contact=primary_contact,
         active_checkin=active_checkin,
         sensor_consent=bool(user.profile and user.profile.sensor_consent),

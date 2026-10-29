@@ -3,11 +3,26 @@ import math
 from flask import Blueprint, request, jsonify
 from app.extensions import db, limiter
 from app.models.safety import CheckInSession, EmergencyIncident, LocationSample, PendingSafetyAction
+from app.models.city import City
 from app.auth_utils import login_required, get_current_user
 from app.services.audit_service import AuditService
+from app.services.emergency_kit import EmergencyKitSourceError, build_emergency_kit
 from sqlalchemy import update
 
 api_safety_bp = Blueprint('api_safety', __name__, url_prefix='/api/safety')
+
+
+@api_safety_bp.route('/emergency-kit/<int:city_id>', methods=['GET'])
+@login_required
+@limiter.limit('1 per minute')
+def get_emergency_kit_data(city_id):
+    city = City.query.filter_by(id=city_id, is_active=True).first_or_404()
+    try:
+        kit = build_emergency_kit(city)
+    except EmergencyKitSourceError as error:
+        return jsonify({'error': str(error)}), 502
+    return jsonify(kit)
+
 
 @api_safety_bp.route('/sos/prepare', methods=['POST'])
 @login_required
